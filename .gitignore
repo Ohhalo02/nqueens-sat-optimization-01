@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env/
+*.log
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.toc
+*.synctex.gz
+*.brf
+*.bcf
+*.xml
