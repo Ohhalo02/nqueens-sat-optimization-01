@@ -1,7 +1,14 @@
-﻿\documentclass[a4paper,fleqn]{cas-sc}
+\documentclass[a4paper,fleqn]{cas-sc}
 % If cas-sc.cls is not available, comment the line above and uncomment:
 % \documentclass[a4paper,12pt]{article}
 % \usepackage[margin=2.5cm]{geometry}
+
+\usepackage[numbers,sort&compress]{natbib}
+\renewcommand{\bibfont}{\footnotesize}
+\setlength{\bibsep}{2.5pt}
+\makeatletter
+\def\URLprefix{\unskip\@addpunct{.} URL: }
+\makeatother
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -11,9 +18,13 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{hyperref}
+\usepackage{xurl}
 \usepackage{xcolor}
 \usepackage{listings}
-\usepackage{subcaption}
+\usepackage{caption}
+\usepackage{lastpage}
+
+\raggedbottom
 
 % Setup listings
 \lstset{
@@ -24,11 +35,18 @@
   showstringspaces=false
 }
 
+\shorttitle{An Optimized SAT Approach for N-Queens}
+\shortauthors{Vu Minh Hoang}
+
+\AtBeginDocument{%
+  \renewcommand{\lastpage}{\pageref*{LastPage}}%
+}
+
 \begin{document}
 
 \title[mode=title]{An Optimized SAT Approach for Solving the N-Queens Problem and Comparative Analysis with Exact Methods}
 
-\author[1]{Vũ Minh Hoàng}[type=editor,
+\author[1]{Vu Minh Hoang}[type=editor,
                         auid=000,bioid=1,
                         prefix=,
                         role=,
@@ -75,7 +93,7 @@ Formally, the N-Queens problem seeks a placement of $N$ queens on an $N \times N
 \subsection{Boolean Satisfiability (SAT)}
 The Boolean Satisfiability problem (SAT) asks whether there exists an assignment of truth values to a set of boolean variables that makes a given logical formula true. Most solvers require the formula to be in Conjunctive Normal Form (CNF), a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. 
 
-Modern SAT solving relies heavily on variants of the DPLL (Davis-Putnam-Logemann-Loveland) algorithm augmented with CDCL \cite{biere2009conflict, moskewicz2001chaff}. State-of-the-art solvers like Glucose \cite{audemard2018glucose} and CaDiCaL utilize aggressive clause learning, adaptive restart policies, and sophisticated variable branching heuristics to solve industrial instances with millions of variables and clauses.
+Modern SAT solving relies heavily on variants of the DPLL (Davis-Putnam-Logemann-Loveland) algorithm augmented with CDCL \cite{marques1999grasp, biere2009conflict, moskewicz2001chaff}. State-of-the-art solvers like Glucose \cite{audemard2018glucose} and CaDiCaL utilize aggressive clause learning, adaptive restart policies, and sophisticated variable branching heuristics to solve industrial instances with millions of variables and clauses.
 
 \subsection{Cardinality Constraints}
 Many combinatorial problems are expressed using cardinality constraints, which restrict the number of variables in a set $X = \{x_1, x_2, \dots, x_n\}$ that can be true simultaneously. The most critical constraints are:
@@ -172,9 +190,8 @@ We then apply the standard pairwise AMO encoding to the much smaller sets $U$ an
 \subsection{Complexity Comparison}
 Table \ref{tab:complexity} summarizes the asymptotic complexities of the implemented AMO encodings when applied to the full N-Queens problem. For an $N \times N$ board, we apply the AMO constraint to $N$ rows, $N$ columns, and $O(N)$ diagonals (each of length up to $N$).
 
-\begin{table}[htbp]
-\centering
-\caption{Asymptotic Complexity of N-Queens SAT Encodings}
+\begin{center}
+\captionof{table}{Asymptotic Complexity of N-Queens SAT Encodings}
 \label{tab:complexity}
 \begin{tabular}{@{}lllc@{}}
 \toprule
@@ -185,7 +202,7 @@ Commander & $N^2 + O(N^2)$ & $O(N^2)$ & Yes \\
 Sequential Counter & $N^2 + O(N^2)$ & $O(N^2)$ & Yes \\
 Product & $N^2 + O(N\sqrt{N})$ & $O(N^2)$ & No \\ \bottomrule
 \end{tabular}
-\end{table}
+\end{center}
 
 \section{Experimental Results \& Comparative Analysis}
 
@@ -195,8 +212,8 @@ All computational experiments were conducted on a workstation equipped with an I
 The solvers evaluated in this study include:
 \begin{itemize}
     \item \textbf{SAT Solvers:} The five proposed AMO formulations were compiled into CNF and solved using Glucose4 via the PySAT toolkit \cite{ignatiev2018pysat}.
-    \item \textbf{Integer Linear Programming (ILP):} Evaluated using the open-source COIN-OR CBC solver via PuLP \cite{mitchell1996lp}, commercial Gurobi Optimizer 13.0 \cite{gurobi}, and IBM ILOG CPLEX Optimization Studio 22.1 (CPLEX MIP via DOcplex).
-    \item \textbf{Constraint Programming (CP):} Evaluated using Google OR-Tools CP-SAT \cite{ortools} and IBM ILOG CPLEX CP Optimizer (CPLEX CP via DOcplex).
+    \item \textbf{Integer Linear Programming (ILP):} Evaluated using the open-source COIN-OR CBC solver via PuLP \cite{mitchell1996lp}, commercial Gurobi Optimizer 13.0 \cite{gurobi}, and IBM ILOG CPLEX Optimization Studio 22.1 (CPLEX MIP via DOcplex) \cite{cplex}.
+    \item \textbf{Constraint Programming (CP):} Evaluated using Google OR-Tools CP-SAT \cite{ortools} and IBM ILOG CPLEX CP Optimizer (CPLEX CP via DOcplex) \cite{cplex}.
 \end{itemize}
 
 Experiments were evaluated across board dimensions $N \in \{4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200\}$. A time limit of 300 seconds was enforced per instance, with runtimes averaged over multiple runs. Commercial solvers (Gurobi and CPLEX) were evaluated locally under community license limits; when problem dimensions exceeded license limits ($>2000$ variables/constraints at $N \ge 40$ for CPLEX MIP and $N \ge 50$ for Gurobi), executions safely recorded license bounds.
@@ -204,9 +221,8 @@ Experiments were evaluated across board dimensions $N \in \{4, 8, 10, 15, 20, 25
 \subsection{SAT Encoding Comparison}
 Table \ref{tab:sat_sizes} illustrates the formula size generated by different encodings at key problem sizes.
 
-\begin{table}[htbp]
-\centering
-\caption{Variables and Clauses generated by each SAT Encoding}
+\begin{center}
+\captionof{table}{Variables and Clauses generated by each SAT Encoding}
 \label{tab:sat_sizes}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
@@ -218,22 +234,23 @@ Commander & 1,172 & 4,278 & 7,514 & 28,726 & 30,536 & 118,092 \\
 Sequential & 1,882 & 4,372 & 12,202 & 28,912 & 49,402 & 117,812 \\
 Product & 1,254 & 4,600 & 5,954 & 30,406 & -- & -- \\ \bottomrule
 \end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.92\linewidth]{figures/variables_clauses.pdf}
-\caption{Formula complexity scaling: Number of clauses (solid lines) and variables (dotted lines) across SAT encodings on a Log-Log scale.}
-\label{fig:vars_clauses}
-\end{figure}
+\end{center}
 
 Several observations are noteworthy from Table \ref{tab:sat_sizes} and Figure \ref{fig:vars_clauses}. The Binomial encoding uses the fewest variables ($N^2$) but generates by far the most clauses, exceeding 1.6 million at $N=100$, confirming the $O(N^3)$ theoretical growth. The Binary encoding reduces clause count significantly while maintaining modest auxiliary variables ($O(N \log N)$). The Commander and Sequential Counter encodings produce the most compact clause sets ($\approx 28{,}800$ at $N=50$ and $\approx 118{,}000$ at $N=100$). However, Sequential Counter incurs a substantial variable penalty ($49{,}402$ variables at $N=100$).
 
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=0.52\linewidth]{figures/variables_clauses.pdf}
+\captionof{figure}{Formula complexity scaling: Number of clauses (solid lines) and variables (dotted lines) across SAT encodings on a Log-Log scale.}
+\label{fig:vars_clauses}
+\end{minipage}
+\end{center}
+
 Table \ref{tab:sat_times} presents the solving time comparison across different SAT encodings.
 
-\begin{table}[htbp]
-\centering
-\caption{Solving Time (seconds) across SAT Encodings}
+\begin{center}
+\captionof{table}{Solving Time (seconds) across SAT Encodings}
 \label{tab:sat_times}
 \begin{tabular}{@{}lrrrrr@{}}
 \toprule
@@ -244,35 +261,37 @@ N & Binomial & Binary & Commander & Sequential & Product \\ \midrule
 75 & 1.2642 & 0.3998 & \textbf{0.2415} & 6.4575 & -- \\
 100 & 2.8812 & \textbf{0.5815} & 5.4760 & 68.1819 & -- \\ \bottomrule
 \end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/encoding_time_comparison.pdf}
-    \caption{Encoding time overhead by SAT encoder.}
-    \label{fig:enc_time}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/solving_time_comparison.pdf}
-    \caption{Solving time comparison across all approaches.}
-    \label{fig:solving_time}
-\end{subfigure}
-\caption{Computational overhead and solving performance across all tested approaches on Log-Log scale.}
-\label{fig:performance_comparison}
-\end{figure}
+\end{center}
 
 \textbf{Analysis:} The empirical results in Table \ref{tab:sat_times} and Figure \ref{fig:performance_comparison} reveal interesting dynamics. While Binomial encoding generates the most clauses, its absence of auxiliary variables enables very fast solving for moderate $N$. At large $N$ ($N \geq 50$), the Binary encoding emerges as the fastest overall SAT solver, completing $N=100$ in just $0.581$ seconds. Conversely, despite its theoretical arc consistency, the Sequential Counter experiences severe degradation at $N=100$ (68.18s) because the vast auxiliary variable space creates a large branching overhead for Glucose4's CDCL heuristic.
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[height=4.4cm, width=\linewidth]{figures/encoding_time_comparison.pdf}
+    \par\vspace{3pt}
+    {\small (a) Encoding time overhead by SAT encoder.}
+\end{minipage}
+\hfill
+\begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[height=4.4cm, width=\linewidth]{figures/solving_time_comparison.pdf}
+    \par\vspace{3pt}
+    {\small (b) Solving time comparison across all approaches.}
+\end{minipage}
+\vspace{6pt}
+\captionof{figure}{Computational overhead and solving performance across all tested approaches on Log-Log scale.}
+\label{fig:performance_comparison}
+\end{minipage}
+\end{center}
 
 \subsection{SAT vs ILP vs CP Comparison}
 Table \ref{tab:method_comparison} compares the best SAT approach against all exact baseline solvers (ILP: CBC, Gurobi, CPLEX MIP; CP: CPLEX CP, Google CP-SAT).
 
-\begin{table}[htbp]
-\centering
-\caption{Comprehensive Runtime Comparison: Best SAT vs Exact Methods (seconds)}
+\begin{center}
+\captionof{table}{Comprehensive Runtime Comparison: Best SAT vs Exact Methods (seconds)}
 \label{tab:method_comparison}
 \begin{tabular}{@{}rrrrrrrr@{}}
 \toprule
@@ -288,26 +307,7 @@ N & Best SAT & ILP (CBC) & ILP (Gurobi) & ILP (CPLEX) & CP (CPLEX) & CP-SAT & Be
 200 & -- & -- & --$^\dagger$ & --$^\dagger$ & --$^\dagger$ & \textbf{22.487} & CP-SAT \\ \bottomrule
 \multicolumn{8}{l}{\footnotesize $^\dagger$ Solver terminated due to commercial license size limitation ($>2{,}000$ variables/constraints).}
 \end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/sat_vs_exact.pdf}
-    \caption{Benchmark runtime: Best SAT vs Exact Methods.}
-    \label{fig:sat_vs_exact}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{figures/scalability_heatmap.pdf}
-    \caption{Solving scalability heatmap across board sizes.}
-    \label{fig:heatmap}
-\end{subfigure}
-\caption{Comparative performance evaluation of SAT against ILP and CP solvers.}
-\label{fig:exact_comparison}
-\end{figure}
+\end{center}
 
 \textbf{Analysis:} Table \ref{tab:method_comparison} and Figure \ref{fig:exact_comparison} clearly show the distinct advantages of each paradigm:
 \begin{itemize}
@@ -315,6 +315,28 @@ N & Best SAT & ILP (CBC) & ILP (Gurobi) & ILP (CPLEX) & CP (CPLEX) & CP-SAT & Be
     \item \textbf{SAT Approach:} The optimized SAT solver (Binary/Binomial) remains consistently competitive with commercial solvers and significantly outperforms the open-source ILP solver (CBC) across all $N \leq 100$.
     \item \textbf{Google CP-SAT Scalability:} For very large board sizes ($N = 150, 200$), Google's OR-Tools CP-SAT is the sole solver capable of scaling smoothly, completing $N=200$ in $22.48$ seconds. Its native \texttt{AllDifferent} global constraint avoids combinatorial explosion.
 \end{itemize}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[height=4.4cm, width=\linewidth]{figures/sat_vs_exact.pdf}
+    \par\vspace{3pt}
+    {\small (a) Benchmark runtime: Best SAT vs Exact Methods.}
+\end{minipage}
+\hfill
+\begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[height=4.4cm, width=\linewidth]{figures/scalability_heatmap.pdf}
+    \par\vspace{3pt}
+    {\small (b) Solving scalability heatmap across board sizes.}
+\end{minipage}
+\vspace{6pt}
+\captionof{figure}{Comparative performance evaluation of SAT against ILP and CP solvers.}
+\label{fig:exact_comparison}
+\end{minipage}
+\end{center}
 
 \subsection{Discussion}
 The results highlight several important findings:
@@ -332,7 +354,7 @@ Empirical results demonstrate that the Binary encoding achieves superior solving
 Future work will explore: (1) symmetry-breaking predicates to prune the search space, (2) specialized restart and branching heuristics tailored to N-Queens, (3) parallel SAT solving for massive instances, and (4) extension of this comparative framework to other combinatorial problems such as graph coloring and scheduling.
 
 \section*{CRediT Authorship Contribution Statement}
-\textbf{Vũ Minh Hoàng:} Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data Curation, Writing - Original Draft, Writing - Review \& Editing, Visualization.
+\textbf{Vu Minh Hoang:} Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data Curation, Writing - Original Draft, Writing - Review \& Editing, Visualization.
 
 \section*{Declaration of Competing Interest}
 The author declares that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
@@ -347,5 +369,3 @@ The source code, encodings, and experimental data are available at: \url{https:/
 \bibliography{references}
 
 \end{document}
-
-
