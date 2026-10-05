@@ -29,5 +29,8 @@ class CommanderEncoder(NQueensEncoder):
             for x in group:
                 self.cnf.append([-x, c_k])
                 
+            # if commander is true, at least one variable in group must be true
+            self.cnf.append([-c_k] + group)
+                
         # Recursively apply commander encoding on commanders
         self._commander_amo(commanders)

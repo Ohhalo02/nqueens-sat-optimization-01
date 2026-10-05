@@ -5,6 +5,12 @@ import os
 import numpy as np
 from matplotlib.ticker import ScalarFormatter
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SAVE_DIRS = [
+    os.path.join(SCRIPT_DIR, 'results', 'figures'),
+    os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'report', 'figures'))
+]
+
 def setup_aesthetics():
     """Configure global matplotlib styles for publication-ready charts."""
     plt.style.use('seaborn-v0_8-whitegrid')
@@ -35,17 +41,54 @@ COLORS = {
     'Best SAT': '#27ae60',           # Dark Green
 }
 
-def load_results(csv_path='results/benchmark_results.csv'):
+def load_results(csv_path=None):
+    if csv_path is None:
+        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmark_results.csv')
     if not os.path.exists(csv_path):
         return None
     df = pd.read_csv(csv_path)
-    df = df.replace('TIMEOUT', np.nan)
+    df = df.replace(['TIMEOUT', 'inf', '-inf'], np.nan)
     for col in ['num_vars', 'num_clauses', 'num_aux_vars', 'encoding_time', 'solving_time', 'total_time']:
         df[col] = pd.to_numeric(df[col], errors='coerce')
+    df = df.replace([np.inf, -np.inf], np.nan)
     return df
 
-def plot_solving_time_comparison(df, save_dir='results/figures'):
-    plt.figure(figsize=(12, 6))
+def _resolve_save_dirs(save_dir=None, save_dirs=None):
+    dirs = save_dirs if save_dirs is not None else save_dir
+    if dirs is None:
+        target_list = list(DEFAULT_SAVE_DIRS)
+    elif isinstance(dirs, str):
+        target_list = [dirs]
+    elif isinstance(dirs, (list, tuple, set)):
+        target_list = list(dirs)
+    else:
+        target_list = list(DEFAULT_SAVE_DIRS)
+    
+    report_fig_dir = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'report', 'figures'))
+    norm_report = os.path.normpath(report_fig_dir)
+    
+    unique_dirs = []
+    seen = set()
+    for d in target_list:
+        norm = os.path.normpath(os.path.abspath(d))
+        if norm not in seen:
+            seen.add(norm)
+            unique_dirs.append(norm)
+            
+    if norm_report not in seen:
+        unique_dirs.append(norm_report)
+        
+    return unique_dirs
+
+def _save_figure(fig, filename, save_dir=None, save_dirs=None):
+    unique_dirs = _resolve_save_dirs(save_dir, save_dirs)
+    for d in unique_dirs:
+        os.makedirs(d, exist_ok=True)
+        fig.savefig(os.path.join(d, f"{filename}.png"), bbox_inches='tight')
+        fig.savefig(os.path.join(d, f"{filename}.pdf"), bbox_inches='tight')
+
+def plot_solving_time_comparison(df, save_dir=None, save_dirs=None):
+    fig = plt.figure(figsize=(12, 6))
     encoders = df['encoder_name'].unique()
     
     n_categories = sorted(df['n'].unique())
@@ -64,7 +107,6 @@ def plot_solving_time_comparison(df, save_dir='results/figures'):
     plt.xscale('log')
     plt.yscale('log')
     
-    # Explicitly set ticks to show exactly the N values
     plt.xticks(n_categories, [str(int(n)) for n in n_categories])
     
     plt.xlabel('Board Size (N) [Log Scale]')
@@ -74,15 +116,16 @@ def plot_solving_time_comparison(df, save_dir='results/figures'):
     plt.grid(True, which="both", ls="--", alpha=0.5)
     plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, "solving_time_comparison.png"))
-    plt.savefig(os.path.join(save_dir, "solving_time_comparison.pdf"))
-    plt.close()
+    _save_figure(fig, "solving_time_comparison", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
 
-def plot_encoding_time(df, save_dir='results/figures'):
-    plt.figure(figsize=(10, 6))
+def plot_encoding_time(df, save_dir=None, save_dirs=None):
+    fig = plt.figure(figsize=(10, 6))
     target_n = [10, 20, 30, 40]
     sub_df = df[df['n'].isin(target_n) & ~df['encoder_name'].str.contains('ILP|CP')].dropna(subset=['encoding_time'])
-    if sub_df.empty: return
+    if sub_df.empty:
+        plt.close(fig)
+        return
     
     sns.barplot(data=sub_df, x='n', y='encoding_time', hue='encoder_name', 
                 palette=COLORS, edgecolor='white', linewidth=1.2)
@@ -93,11 +136,10 @@ def plot_encoding_time(df, save_dir='results/figures'):
     
     plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Method')
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, "encoding_time_comparison.png"))
-    plt.savefig(os.path.join(save_dir, "encoding_time_comparison.pdf"))
-    plt.close()
+    _save_figure(fig, "encoding_time_comparison", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
 
-def plot_variables_clauses(df, save_dir='results/figures'):
+def plot_variables_clauses(df, save_dir=None, save_dirs=None):
     sat_df = df[~df['encoder_name'].str.contains('ILP|CP', na=False)].dropna(subset=['num_vars', 'num_clauses'])
     if sat_df.empty: return
     
@@ -133,14 +175,15 @@ def plot_variables_clauses(df, save_dir='results/figures'):
     
     fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.01), ncol=3, frameon=True)
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, "variables_clauses.png"), bbox_inches='tight')
-    plt.savefig(os.path.join(save_dir, "variables_clauses.pdf"), bbox_inches='tight')
-    plt.close()
+    _save_figure(fig, "variables_clauses", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
 
-def plot_sat_vs_exact(df, save_dir='results/figures'):
-    plt.figure(figsize=(12, 6))
+def plot_sat_vs_exact(df, save_dir=None, save_dirs=None):
+    fig = plt.figure(figsize=(12, 6))
     sat_df = df[~df['encoder_name'].str.contains('ILP|CP', na=False)].dropna(subset=['total_time'])
-    if sat_df.empty: return
+    if sat_df.empty:
+        plt.close(fig)
+        return
     
     best_sat = sat_df.loc[sat_df.groupby('n')['total_time'].idxmin()].copy()
     best_sat['Method'] = 'Best SAT'
@@ -166,12 +209,11 @@ def plot_sat_vs_exact(df, save_dir='results/figures'):
         plt.title('Benchmark: Best SAT vs Exact Methods')
         plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Solver Engine')
         plt.tight_layout()
-        plt.savefig(os.path.join(save_dir, "sat_vs_exact.png"))
-        plt.savefig(os.path.join(save_dir, "sat_vs_exact.pdf"))
-    plt.close()
+        _save_figure(fig, "sat_vs_exact", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
 
-def plot_scalability_heatmap(df, save_dir='results/figures'):
-    plt.figure(figsize=(12, 7))
+def plot_scalability_heatmap(df, save_dir=None, save_dirs=None):
+    fig = plt.figure(figsize=(12, 7))
     pivot_df = df.pivot(index='encoder_name', columns='n', values='solving_time')
     
     sns.heatmap(pivot_df, annot=True, cmap='YlGnBu', fmt='.2f', 
@@ -184,25 +226,62 @@ def plot_scalability_heatmap(df, save_dir='results/figures'):
     plt.ylabel('Solver / Encoder')
     plt.title('Scalability Heatmap: Performance Matrix across N')
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, "scalability_heatmap.png"))
-    plt.savefig(os.path.join(save_dir, "scalability_heatmap.pdf"))
-    plt.close()
+    _save_figure(fig, "scalability_heatmap", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
 
-def generate_all_plots(csv_path='results/benchmark_results.csv', save_dir='results/figures'):
+def plot_cactus(df, save_dir=None, save_dirs=None):
+    """Plot Cactus Plot: Cumulative runtime vs number of solved instances."""
+    fig = plt.figure(figsize=(12, 6))
+    encoders = df['encoder_name'].unique()
+    max_solved = 0
+    
+    for i, encoder in enumerate(encoders):
+        data = df[(df['encoder_name'] == encoder) & (df['satisfiable'] == True)].dropna(subset=['total_time'])
+        data = data[np.isfinite(data['total_time'])]
+        if data.empty:
+            continue
+            
+        sorted_times = np.sort(data['total_time'].values)
+        cum_times = np.cumsum(sorted_times)
+        num_solved = len(cum_times)
+        max_solved = max(max_solved, num_solved)
+        
+        x = np.arange(1, num_solved + 1)
+        linestyle = '--' if 'ILP' in encoder else ':' if 'CP' in encoder else '-'
+        marker = ['o', 's', '^', 'D', 'v', 'X', 'P', '*', 'H', 'd'][i % 10]
+        color = COLORS.get(encoder, '#333')
+        
+        plt.plot(x, cum_times, label=encoder, color=color,
+                 linestyle=linestyle, marker=marker, markersize=6,
+                 linewidth=2.0, alpha=0.85)
+                 
+    plt.yscale('log')
+    if max_solved > 0:
+        plt.xticks(np.arange(1, max_solved + 1))
+    plt.xlabel('Number of Solved Instances (Sorted by Speed)', fontweight='bold')
+    plt.ylabel('Cumulative Runtime (s) [Log Scale]', fontweight='bold')
+    plt.title('Cactus Plot: Cumulative Runtime vs Solved Instances', fontweight='bold')
+    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+    plt.tight_layout()
+    _save_figure(fig, "cactus_plot", save_dir=save_dir, save_dirs=save_dirs)
+    plt.close(fig)
+
+def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
     setup_aesthetics()
     
-    os.makedirs(save_dir, exist_ok=True)
+    resolved_dirs = _resolve_save_dirs(save_dir, save_dirs)
+        
     df = load_results(csv_path)
     if df is not None:
-        plot_solving_time_comparison(df, save_dir)
-        plot_encoding_time(df, save_dir)
-        plot_variables_clauses(df, save_dir)
-        plot_sat_vs_exact(df, save_dir)
-        plot_scalability_heatmap(df, save_dir)
-        print("All optimized aesthetic plots generated successfully.")
+        plot_solving_time_comparison(df, save_dirs=resolved_dirs)
+        plot_encoding_time(df, save_dirs=resolved_dirs)
+        plot_variables_clauses(df, save_dirs=resolved_dirs)
+        plot_sat_vs_exact(df, save_dirs=resolved_dirs)
+        plot_scalability_heatmap(df, save_dirs=resolved_dirs)
+        plot_cactus(df, save_dirs=resolved_dirs)
+        print("All optimized aesthetic plots (including Cactus Plot) generated successfully to both results/figures and report/figures.")
 
 if __name__ == '__main__':
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_file = os.path.join(script_dir, 'results', 'benchmark_results.csv')
-    out_dir = os.path.join(script_dir, 'results', 'figures')
-    generate_all_plots(csv_file, out_dir)
+    csv_file = os.path.join(SCRIPT_DIR, 'results', 'benchmark_results.csv')
+    generate_all_plots(csv_file)

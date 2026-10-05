@@ -28,3 +28,9 @@ venv/
 *.brf
 *.bcf
 *.xml
+
+# License files
+*.lic
+
+# Archives
+*.zip

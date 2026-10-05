@@ -42,7 +42,7 @@ def main():
     # Define solvers and their max N thresholds (to avoid wasting time)
     solvers_config = [
         (BinomialEncoder,   [4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100]),
-        (BinaryEncoder,     [4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100]),
+        (BinaryEncoder,     [4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]),
         (CommanderEncoder,  [4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100]),
         (SequentialEncoder, [4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100]),
         (ProductEncoder,    [4, 8, 10, 15, 20, 25, 30, 40, 50]),

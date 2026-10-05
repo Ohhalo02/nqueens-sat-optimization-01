@@ -1,4 +1,4 @@
-﻿# N-Queens SAT Optimization
+# N-Queens SAT Optimization
 
 An optimized Boolean Satisfiability (SAT) approach for solving the N-Queens problem, accompanied by a comparative analysis against exact methods like Integer Linear Programming (ILP) and Constraint Programming (CP).
 
@@ -17,49 +17,45 @@ The N-Queens SAT Optimization project provides a comprehensive research framewor
 
 ## Overall Architecture
 
-The system is decoupled into three primary layers: Encoders, Solvers, and Analytics. All SAT encodings inherit from a unified `NQueensEncoder` base class, isolating constraint generation from the solving logic.
+The system architecture is organized into four cohesive layers: Problem Input, Modeling & Formulation, Solving Engines, and Benchmarking & Analytics. All SAT encodings inherit from a unified `NQueensEncoder` base class, strictly decoupling constraint generation from the solving logic.
 
 ```mermaid
 flowchart TD
-    subgraph Input
-        A[Board Size N] 
+    subgraph L1 ["1. PROBLEM INPUT"]
+        IN["N-Queens Problem Instance (Board Size N)"]
     end
 
-    subgraph Encoders Layer
-        B1[Binomial]
-        B2[Binary]
-        B3[Commander]
-        B4[Sequential]
-        B5[Product]
+    subgraph L2 ["2. MODELING & FORMULATION LAYER"]
+        M_SAT["SAT Encoders (AMO / ALO / EXO)<br/>Binomial • Binary • Commander • Sequential • Product"]
+        M_ILP["ILP Baseline Formulation<br/>Binary Decision Variables & Linear Constraints"]
+        M_CP["CP Baseline Formulation<br/>Integer Domains & AllDifferent Constraints"]
     end
 
-    subgraph Baselines Layer
-        C1[ILP Model]
-        C2[CP Model]
+    subgraph L3 ["3. SOLVING ENGINES LAYER"]
+        S_SAT["PySAT Solver<br/>(Glucose4 CDCL)"]
+        S_ILP["PuLP Solver<br/>(CBC Branch & Cut)"]
+        S_CP["Google OR-Tools<br/>(CP-SAT Engine)"]
     end
 
-    subgraph Solving Engine
-        S1{PySAT / Glucose4}
-        S2{PuLP / CBC}
-        S3{OR-Tools}
+    subgraph L4 ["4. BENCHMARKING & ANALYTICS LAYER"]
+        direction TB
+        BENCH["Execution & Validation Pipeline (benchmark.py & utils.py)"]
+        CSV["Performance Dataset (results/benchmark_results.csv)"]
+        PLT["Visualization Suite (visualize.py: Runtime & Complexity Charts)"]
+        BENCH --> CSV --> PLT
     end
 
-    subgraph Analytics & Output
-        O1[Validation & CLI Output]
-        O2[(Benchmark CSV)]
-        O3[Visualizer / Charts]
-    end
+    IN --> M_SAT
+    IN --> M_ILP
+    IN --> M_CP
 
-    A --> B1 & B2 & B3 & B4 & B5
-    A --> C1 & C2
+    M_SAT --> S_SAT
+    M_ILP --> S_ILP
+    M_CP --> S_CP
 
-    B1 & B2 & B3 & B4 & B5 -->|CNF Formula| S1
-    C1 -->|LP Relaxation| S2
-    C2 -->|AllDifferent Constraint| S3
-
-    S1 & S2 & S3 --> O1
-    S1 & S2 & S3 -->|Execution Metrics| O2
-    O2 --> O3
+    S_SAT --> BENCH
+    S_ILP --> BENCH
+    S_CP --> BENCH
 ```
 
 ## Installation

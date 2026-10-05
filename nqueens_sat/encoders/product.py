@@ -4,7 +4,10 @@ from .base import NQueensEncoder
 class ProductEncoder(NQueensEncoder):
     def _add_amo(self, variables):
         n = len(variables)
-        if n <= 1:
+        if n < 6:
+            for i in range(n):
+                for j in range(i + 1, n):
+                    self.cnf.append([-variables[i], -variables[j]])
             return
             
         p = math.ceil(math.sqrt(n))
