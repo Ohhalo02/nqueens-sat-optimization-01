@@ -24,6 +24,8 @@ class NQueensEncoder(ABC):
     
     def encode(self, n):
         """Build complete CNF formula for N-Queens."""
+        if not isinstance(n, int) or n < 1:
+            raise ValueError("Board size n must be a positive integer")
         self.cnf = CNF()
         self.n = n
         self.num_aux_vars = 0
@@ -82,24 +84,26 @@ class NQueensEncoder(ABC):
                 self._add_amo(anti_vars)
     
     def solve(self, n, time_limit=300):
-        """Encode and solve N-Queens. Returns dict with results."""
+        """Encode and solve N-Queens; the benchmark enforces wall deadlines externally."""
+        wall_start = time.perf_counter()
         self.encode(n)
         
         t0 = time.perf_counter()
         with Glucose4(bootstrap_with=self.cnf) as solver:
             sat = solver.solve()
             model = solver.get_model() if sat else None
+            statistics = solver.accum_stats()
         self.solving_time = time.perf_counter() - t0
         
+        decode_start = time.perf_counter()
         solution = None
-        if model:
-            solution = []
-            for i in range(n):
-                for j in range(n):
-                    if self.var(i, j) in model:
-                        solution.append((i, j))
+        if model is not None:
+            queen_literals = sorted(lit for lit in model if 0 < lit <= n * n)
+            solution = [((lit - 1) // n, (lit - 1) % n) for lit in queen_literals]
+        decode_time = time.perf_counter() - decode_start
         
         return {
+            'status': 'SAT' if sat else 'UNSAT',
             'satisfiable': sat,
             'solution': solution,
             'num_vars': self.cnf.nv,
@@ -107,7 +111,10 @@ class NQueensEncoder(ABC):
             'num_aux_vars': self.num_aux_vars,
             'encoding_time': self.encoding_time,
             'solving_time': self.solving_time,
+            'decode_time': decode_time,
             'total_time': self.encoding_time + self.solving_time,
+            'wall_total': time.perf_counter() - wall_start,
+            'statistics': statistics,
             'encoder_name': self.__class__.__name__
         }
     

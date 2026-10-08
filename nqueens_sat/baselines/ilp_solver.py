@@ -41,9 +41,10 @@ class ILPSolver:
         
         t_solve = time.perf_counter()
         # Solve with CBC, suppress output
-        prob.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit))
+        prob.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1))
         solving_time = time.perf_counter() - t_solve
         
+        decode_start = time.perf_counter()
         solution = None
         if prob.status == 1:  # Optimal
             solution = []
@@ -56,14 +57,20 @@ class ILPSolver:
         num_vars = n * n
         num_constraints = prob.numConstraints()
         
+        status = 'SAT' if prob.status == 1 else 'UNSAT' if prob.status == -1 else 'UNKNOWN'
+        decode_time = time.perf_counter() - decode_start
         return {
-            'satisfiable': prob.status == 1,
+            'status': status,
+            'native_status': LpStatus[prob.status],
+            'satisfiable': True if status == 'SAT' else False if status == 'UNSAT' else None,
             'solution': solution,
             'num_vars': num_vars,
             'num_clauses': num_constraints,  # for uniform naming
             'num_aux_vars': 0,
             'encoding_time': encoding_time,
             'solving_time': solving_time,
+            'decode_time': decode_time,
             'total_time': encoding_time + solving_time,
+            'wall_total': time.perf_counter() - t_start,
             'encoder_name': self.name
         }

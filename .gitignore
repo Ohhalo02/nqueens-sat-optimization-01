@@ -15,6 +15,7 @@ venv/
 
 # LaTeX build files
 *.aux
+*.abs
 *.bbl
 *.blg
 *.dvi
@@ -34,3 +35,7 @@ venv/
 
 # Archives
 *.zip
+
+# Private review material and local history backup
+/audit/
+/pre-audit-cleanup-*.bundle

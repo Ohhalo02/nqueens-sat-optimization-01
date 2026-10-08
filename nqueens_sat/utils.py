@@ -1,6 +1,6 @@
 def validate_solution(solution, n):
     """Validate that a solution to N-Queens is correct."""
-    if solution is None:
+    if solution is None or not isinstance(n, int) or n < 1:
         return False
     if len(solution) != n:
         return False
@@ -9,6 +9,8 @@ def validate_solution(solution, n):
     diag1 = set()  # r - c
     diag2 = set()  # r + c
     for r, c in solution:
+        if not isinstance(r, int) or not isinstance(c, int) or not (0 <= r < n and 0 <= c < n):
+            return False
         if r in rows or c in cols or (r-c) in diag1 or (r+c) in diag2:
             return False
         rows.add(r)
