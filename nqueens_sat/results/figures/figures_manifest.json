@@ -1,0 +1,32 @@
+{
+  "source_csv": "nqueens_sat/results/benchmark_results.csv",
+  "source_csv_sha256": "e9ab9a287278c2762588cf823c6ed7c21d3662b1137ae577d92a2f40ed986e06",
+  "source_rows": 116,
+  "plots": {
+    "solving_time_comparison": {
+      "png": "0e3bf3ebb47524ae98b10dd0ad989944d9a805aa0cdce567f64e8d96e7340fb8",
+      "pdf": "2d3114f4d7d44020b2e3e1246847e18511711f543be6f340f4d0a4e13ae6a67e"
+    },
+    "encoding_time_comparison": {
+      "png": "08d93025852096f11ec4d3e51b8603cb70bf389b4f61a9e1cbe3bbdd17e80a8d",
+      "pdf": "cd7601d21bad1ec024d0755ed242554cea495a92fda713a0347b711b972df4e7"
+    },
+    "variables_clauses": {
+      "png": "c5083d3d2be9f127f750c4a3d426c364858301407a56b569baa09900c15766bb",
+      "pdf": "5e6d525884c07896b6970584392c87afd235535f300d401f44974c77dae34875"
+    },
+    "sat_vs_exact": {
+      "png": "d737075d14203bdd5360e911c98e5f07ef8639bae88f63964973a0a6aa73af04",
+      "pdf": "3182a103f07361ea27fb724edcb9fe8c1bb0dfa6d6b367e6058b666c597c95eb"
+    },
+    "scalability_heatmap": {
+      "png": "e43c828db9804f9c1e549878980c83d3f932adc4d1100fcd017360767482b1af",
+      "pdf": "48edf21d696ad48c938ce00321c59dded6f6f526136978124765aa4e5843fdbc"
+    },
+    "cactus_plot": {
+      "png": "7fc9f040e9159840a27bb2f27da291c6865c3062f49c2dff380078f34179e943",
+      "pdf": "de68b3ee019734df4759c24df6b91752474ace392eadda49b6ae7e67d5b97a23"
+    }
+  },
+  "note": "Historical aggregate measurements; absent cases are not timeouts."
+}
