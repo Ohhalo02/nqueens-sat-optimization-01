@@ -1,0 +1,44 @@
+{
+  "run_id": "20261007T165504Z",
+  "created_utc": "2026-10-07T16:55:04.527311+00:00",
+  "source_commit": "9e10c97e35047a53c88fdb654c267f5b0dda64b0",
+  "source_dirty": true,
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+  "logical_cpus": 16,
+  "package_versions": {
+    "python-sat": "1.9.dev15",
+    "pulp": "3.3.2",
+    "ortools": "9.15.6755",
+    "gurobipy": "13.0.3",
+    "docplex": "2.32.264",
+    "cplex": "22.2.0.1",
+    "matplotlib": "3.11.2",
+    "seaborn": "0.13.2",
+    "pandas": "3.0.6",
+    "numpy": "2.5.1"
+  },
+  "solver_workers": 1,
+  "selected_solvers": [
+    "BinaryEncoder",
+    "ILP-Gurobi",
+    "CP-SAT-ORTools"
+  ],
+  "selected_sizes": [
+    20,
+    50,
+    100,
+    150,
+    200
+  ],
+  "requested_repeats": 3,
+  "wall_limit_seconds_per_repeat": 120.0,
+  "timing_definition": {
+    "total_time": "model construction + solver invocation",
+    "wall_total": "inside solve(), including solution extraction",
+    "process_wall_time": "parent clock, including worker startup and validation"
+  },
+  "summary_statistic": "median of complete repetitions",
+  "python_executable_name": "python.exe"
+}

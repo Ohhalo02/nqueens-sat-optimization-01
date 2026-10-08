@@ -1,0 +1,48 @@
+{
+  "run_id": "20261008T125216Z",
+  "created_utc": "2026-10-08T12:52:16.844239+00:00",
+  "source_dirty": false,
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable_name": "python.exe",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+  "logical_cpus": 16,
+  "package_versions": {
+    "python-sat": "1.9.dev15",
+    "pulp": "3.3.2",
+    "ortools": "9.15.6755",
+    "gurobipy": "13.0.3",
+    "docplex": "2.32.264",
+    "cplex": "22.2.0.1",
+    "matplotlib": "3.11.2",
+    "seaborn": "0.13.2",
+    "pandas": "3.0.6",
+    "numpy": "2.5.1"
+  },
+  "solver_workers": 1,
+  "selected_solvers": [
+    "BinomialEncoder",
+    "BinaryEncoder",
+    "CommanderEncoder",
+    "SequentialEncoder",
+    "ProductEncoder",
+    "ILP-PuLP-CBC",
+    "ILP-Gurobi",
+    "CP-SAT-ORTools"
+  ],
+  "selected_sizes": [
+    20,
+    50,
+    100
+  ],
+  "requested_repeats": 3,
+  "wall_limit_seconds_per_repeat": 120.0,
+  "timing_definition": {
+    "total_time": "model construction + solver invocation",
+    "wall_total": "inside solve(), including solution extraction",
+    "process_wall_time": "parent clock, including worker startup and validation"
+  },
+  "summary_statistic": "median of complete repetitions",
+  "source_code_sha256": "ee61c48510dd8e318121ae262cffc43eac74f8ce319fbcd65ee2207671310800",
+  "source_code_scope": "all nqueens_sat/**/*.py files, sorted by relative path, SHA-256 over UTF-8 path + NUL + bytes + NUL"
+}
