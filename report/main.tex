@@ -37,7 +37,7 @@
 
 \begin{document}
 
-\title[mode=title]{A Comparative Study of SAT Encodings and Exact Solvers for the N-Queens Problem}
+\title[mode=title]{SAT encodings for empty-board N-Queens: a comparison with ILP and CP}
 
 \author[1]{Vu Minh Hoang}
 \cormark[1]
@@ -48,7 +48,7 @@
 \cortext[1]{Corresponding author}
 
 \begin{abstract}
-This paper compares five at-most-one (AMO) encodings for Boolean satisfiability formulations of empty-board N-Queens: pairwise, binary, commander, sequential counter, and product. The same placement constraints are modeled with integer linear programming (CBC, Gurobi, and CPLEX MIP) and constraint programming (OR-Tools CP-SAT and CPLEX CP Optimizer). An archived benchmark covers $N=4$ to $N=200$ with unequal solver coverage and incomplete provenance. Two clean-source runs evaluate all five SAT encodings, CBC, Gurobi, and CP-SAT at $N\in\{20,50,100,150,200\}$, with three repetitions, one worker, and a 120-s process deadline per run. At $N=200$, the observed median construction-plus-solver-call times are 2.252~s for Commander, 2.806~s for Product, 3.208~s for Binary, 0.421~s for Gurobi, and 44.776~s for CP-SAT; Sequential and CBC time out in all three repetitions. These times exclude solution extraction and process startup, which are recorded separately. Exact formula-size checks and unit-propagation tests confirm that each implemented AMO encoding enforces the intended constraint and propagates a selected input to the falsity of all others. The datasets are kept separate, and the results do not imply a general ranking beyond the evaluated empty-board instances.
+The choice of at-most-one (AMO) encoding changes the size and propagation behavior of a Boolean satisfiability (SAT) formula for N-Queens. An archived benchmark has unequal method coverage, so it cannot compare all five encodings at large sizes. This study implements pairwise, binary, commander, sequential counter, and product encodings for empty-board N-Queens and compares them with integer linear programming and constraint programming models. Two clean-source runs test the five SAT encodings, CBC, Gurobi, and CP-SAT at $N\in\{20,50,100,150,200\}$, with three repetitions and a 120-s full-process deadline per case. At $N=200$, median construction-plus-solver-call time is 2.252~s for Commander/Glucose4, 0.421~s for Gurobi, and 44.776~s for CP-SAT. Sequential and CBC time out in all three repetitions. Exact formula counts and unit-propagation tests check the implemented encodings. The results describe one machine and five feasible board sizes; they do not establish general solver superiority.
 \end{abstract}
 
 \begin{keywords}
@@ -59,121 +59,115 @@ N-Queens Problem \sep SAT Encoding \sep At-Most-One Constraint \sep Combinatoria
 
 \section{Introduction}
 
-The N-Queens problem asks for $N$ non-attacking queens on an $N\times N$ board. A valid placement exists for $N=1$ and every $N\geq4$, and explicit constructions find one in polynomial time. Nevertheless, the problem provides a structured comparison of modeling and implementation overhead across exact solvers. Its easy decision version should not be confused with the harder N-Queens Completion variant \cite{bell2009survey,gent2017complexity}.
+The N-Queens problem asks for $N$ non-attacking queens on an $N\times N$ board. Direct constructions find a placement for $N=1$ and every $N\geq4$ in polynomial time \cite{bell2009survey}. The empty-board problem still permits a controlled comparison of SAT, integer linear programming (ILP), and constraint programming (CP) formulations. Its results do not extend automatically to N-Queens Completion or unrelated combinatorial problems \cite{gent2017complexity}.
 
-N-Queens is commonly used to illustrate constraint satisfaction and compare formulations. Results on an empty board do not, by themselves, predict performance on arbitrary scheduling, routing, or other combinatorial problems \cite{gent2017complexity}.
+SAT solvers use conflict-driven clause learning (CDCL), but they require a conjunctive normal form (CNF) representation of the placement constraints \cite{marques2009cdcl}. Different at-most-one (AMO) encodings can change both CNF size and what unit propagation deduces \cite{prestwich2007cnf}. The archived benchmark includes only the binary encoding at $N=150$ and $N=200$. It therefore cannot compare all five SAT encodings at those sizes.
 
-The primary motivation of this study is to systematically evaluate how different problem formulations impact the performance of modern automated reasoning tools. Boolean Satisfiability (SAT) solvers have made tremendous strides in the past two decades, largely driven by Conflict-Driven Clause Learning (CDCL) architectures \cite{marques2009cdcl}. However, compiling high-level combinatorial constraints into Conjunctive Normal Form (CNF) requires careful consideration. The choice of encoding, particularly for cardinality constraints like ``At-Most-One'' (AMO), can drastically alter the size of the logical formula and the solver's ability to prune the search space via unit propagation \cite{prestwich2007cnf}.
+This study asks how the five encodings differ in formula size and measured runtime under a common process limit. It also compares SAT with ILP and CP-SAT on the same empty-board sizes. The paper checks exact CNF counts and AMO propagation, then reports archived and clean-source measurements separately. The study does not propose a new encoding or claim a general solver ranking.
 
-The contributions are (i) a common implementation and exact size analysis of five established AMO encodings, (ii) an archived ILP/CP comparison and a separately recorded, common-protocol large-board comparison, and (iii) an explicit account of coverage, timing, and license limitations. No new SAT encoding or general-purpose optimization algorithm is claimed.
+\section{Background and related work}
 
-Section 2 reviews the background. Section 3 specifies the formulations and encodings. Section 4 reports the archived and controlled measurements with their limitations. Section 5 concludes.
+\subsection{The N-Queens problem}
+A solution places one queen in each row and column and at most one on each diagonal. Empty boards with $N=2$ or $N=3$ have no solution. N-Queens Completion adds pre-placed queens; its decision and counting versions are NP-complete and \#P-complete, respectively \cite{gent2017complexity}. This study seeks one placement on an empty board.
 
-\section{Background \& Related Work}
+\subsection{Boolean satisfiability (SAT)}
+SAT asks whether a Boolean formula has a satisfying assignment. In CNF, the formula is a conjunction of clauses, and each clause is a disjunction of literals.
 
-\subsection{The N-Queens Problem}
-A solution places exactly one queen in each row and column and at most one on each diagonal. The empty-board decision problem has constructive solutions for $N=1$ and $N\geq4$; $N=2,3$ are infeasible. In contrast, the decision and counting versions of N-Queens Completion, where some queens are pre-placed, are NP-complete and \#P-complete, respectively \cite{gent2017complexity}. The experiments below concern one feasible placement on an empty board, not completion or counting.
+Modern SAT solvers extend the Davis-Putnam-Logemann-Loveland (DPLL) procedure with CDCL \cite{marques1999grasp,marques2009cdcl,moskewicz2001chaff}. Glucose uses literal block distance (LBD), the number of decision levels in a learned clause, to assess learned clauses \cite{audemard2009predicting,audemard2018glucose}. The SAT experiments use Glucose4 through PySAT.
 
-\subsection{Boolean Satisfiability (SAT)}
-The Boolean Satisfiability problem (SAT) asks whether there exists an assignment of truth values to a set of boolean variables that makes a given logical formula true. Most solvers require the formula to be in Conjunctive Normal Form (CNF), a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. 
-
-Modern SAT solving relies heavily on variants of the DPLL (Davis-Putnam-Logemann-Loveland) algorithm augmented with CDCL \cite{marques1999grasp, marques2009cdcl, moskewicz2001chaff}. Glucose employs clause learning and evaluates learned clauses using literal block distance (LBD), the number of distinct decision levels appearing in a learned clause \cite{audemard2009predicting,audemard2018glucose}. The present benchmark uses Glucose4 through PySAT.
-
-\subsection{Cardinality Constraints}
-Many combinatorial problems are expressed using cardinality constraints, which restrict the number of variables in a set $X = \{x_1, x_2, \dots, x_n\}$ that can be true simultaneously. The most critical constraints are:
+\subsection{Cardinality constraints}
+Cardinality constraints limit the number of true variables in $X=\{x_1,x_2,\dots,x_n\}$. The N-Queens model uses three forms:
 \begin{itemize}
-    \item \textbf{At-Least-One (ALO):} $\sum x_i \geq 1$. In CNF, this is trivially encoded as a single clause: $(x_1 \vee x_2 \vee \dots \vee x_n)$.
-    \item \textbf{At-Most-One (AMO):} $\sum x_i \leq 1$. This prevents more than one variable from being true and is the primary bottleneck in translating CSPs to SAT \cite{frisch2005sat}.
-    \item \textbf{Exactly-One (EXO):} $\sum x_i = 1$. This is logically equivalent to ALO $\wedge$ AMO.
+    \item \textbf{At least one (ALO):} $\sum x_i \geq 1$, encoded by the clause $(x_1 \vee x_2 \vee \dots \vee x_n)$.
+    \item \textbf{At most one (AMO):} $\sum x_i \leq 1$. Several CNF encodings trade formula size against propagation strength \cite{frisch2005sat}.
+    \item \textbf{Exactly one (EXO):} $\sum x_i = 1$, equivalent to ALO $\wedge$ AMO.
 \end{itemize}
 
-\subsection{Integer Linear Programming (ILP)}
-ILP is a mathematical optimization framework where the objective function and constraints are linear, and decision variables are restricted to integer values \cite{nemhauser1988integer}. Solvers typically utilize LP relaxations combined with Branch and Bound and Branch and Cut techniques. Leading commercial ILP solvers include Gurobi \cite{gurobi} and IBM ILOG CPLEX \cite{cplex}, alongside open-source alternatives like CBC via the PuLP library \cite{mitchell1996lp}.
+\subsection{Integer linear programming (ILP)}
+ILP uses linear constraints and integer-valued decision variables \cite{nemhauser1988integer}. Solvers can combine linear relaxations with branch-and-bound and cutting planes. The baselines use Gurobi \cite{gurobi}, IBM ILOG CPLEX \cite{cplex}, and CBC through PuLP \cite{mitchell1996lp}.
 
-\subsection{Constraint Programming (CP)}
-Constraint Programming focuses on stating constraints over variables and finding solutions satisfying them, typically using systematic search combined with constraint propagation. A key strength of CP is the availability of ``global constraints'' like \texttt{AllDifferent}, which encapsulate complex subproblems and utilize specialized filtering algorithms (such as Régin's maximum bipartite matching algorithm \cite{regin1994filtering}) to heavily prune domains \cite{rossi2006handbook}. The evaluated engines are Google's hybrid CP-SAT solver \cite{ortools} and IBM ILOG CPLEX CP Optimizer \cite{cplex}. Their internal propagators and search policies should not be inferred from the high-level model alone.
+\subsection{Constraint programming (CP)}
+CP searches for assignments that satisfy stated constraints. Global constraints such as \texttt{AllDifferent} can use specialized filtering, including Régin's matching-based method \cite{regin1994filtering,rossi2006handbook}. The baselines use OR-Tools CP-SAT \cite{ortools} and IBM ILOG CPLEX CP Optimizer \cite{cplex}. Their internal propagation cannot be determined from the model alone.
 
-\subsection{Related Work}
-The translation of CSPs to SAT has been extensively studied. Prestwich \cite{prestwich2007cnf} surveyed various encoding methods. The naive pairwise AMO encoding, while simple, creates $O(n^2)$ clauses, which becomes prohibitive. Sinz \cite{sinz2005towards} introduced the sequential counter encoding, achieving arc consistency with $O(n)$ variables and clauses. Klieber and Kwon \cite{klieber2007efficient} proposed the Commander encoding, grouping variables hierarchically. Chen \cite{chen2010new} introduced grid and product-based encodings. The five encodings compared here are established methods. The contribution is an empirical comparison for this implementation and dataset rather than a claim of a new encoding.
+\subsection{Related work}
+Prestwich reviewed CNF translations of constraint satisfaction problems \cite{prestwich2007cnf}. Pairwise AMO uses $O(n^2)$ clauses; Sinz's sequential counter reduces this to $O(n)$ clauses and auxiliary variables \cite{sinz2005towards}. Klieber and Kwon proposed hierarchical commander groups \cite{klieber2007efficient}, while Chen studied grid and product encodings \cite{chen2010new}. All five encodings in this paper are established methods.
 
-\section{SAT Encodings for N-Queens}
+\section{SAT encodings for N-Queens}
 
-\subsection{Problem Formulation}
-Let $N$ be the dimension of the board. A Boolean variable $x_{i,j}$ is defined for each row $i$ and column $j$ ($i, j \in \{1, \dots, N\}$). The variable $x_{i,j}$ is TRUE if a queen is placed at row $i$, column $j$, and FALSE otherwise.
+\subsection{Problem formulation}
+For each cell $(i,j)$ of an $N\times N$ board, let $x_{i,j}$ be true exactly when that cell contains a queen. Here $i,j\in\{1,\dots,N\}$.
 
 The board-level constraint has six components. For each encoding $E$, auxiliary variables $Y$ are allocated separately for each AMO set, and the resulting CNF $\Phi_E(X,Y)$ satisfies $\Phi_{\mathrm{board}}(X)\iff\exists Y\,\Phi_E(X,Y)$:
 \begin{equation}
 \Phi = \Phi^{row}_{ALO} \wedge \Phi^{row}_{AMO} \wedge \Phi^{col}_{ALO} \wedge \Phi^{col}_{AMO} \wedge \Phi^{diag}_{AMO} \wedge \Phi^{anti}_{AMO}
 \end{equation}
 
-\subsection{Row and Column Constraints}
-Every row must contain exactly one queen (EXO constraint), meaning at least one (ALO) and at most one (AMO).
-The ALO constraint for row $i$ is:
+\subsection{Row and column constraints}
+Every row and column must contain exactly one queen. For row $i$, the ALO clause is
 \begin{equation}
 \bigvee_{j=1}^{N} x_{i,j}
 \end{equation}
-The AMO constraint depends on the chosen encoding scheme. The exact same logic applies to columns. Thus, for rows and columns, the constraint is EXO = ALO $\wedge$ AMO.
+The chosen encoding supplies row AMO clauses; columns use the same construction. Each row and column therefore satisfies EXO = ALO $\wedge$ AMO.
 
-\subsection{Diagonal Constraints}
-Queens cannot share diagonals. For main diagonals, the index is defined as $d = i - j$, where $d \in \{-(N-1), \dots, N-1\}$. For anti-diagonals, the index is defined as $s = i + j$, where $s \in \{2, \dots, 2N\}$.
-Because a diagonal can be empty, only the At-Most-One (AMO) constraint must be enforced for all cells sharing the same $d$ and $s$. No ALO constraint is required.
+\subsection{Diagonal constraints}
+Cells share a main diagonal when $d=i-j$ is equal, with $d\in\{-(N-1),\dots,N-1\}$. They share an anti-diagonal when $s=i+j$ is equal, with $s\in\{2,\dots,2N\}$. Each diagonal needs AMO but may be empty, so it needs no ALO clause.
 
-\subsection{AMO Encoding Schemes}
-Given a set of $n$ Boolean variables $X = \{x_1, \dots, x_n\}$, the At-Most-One (AMO) constraint specifies that at most one variable in $X$ can evaluate to TRUE:
+\subsection{AMO encoding schemes}
+For $n$ Boolean variables $X=\{x_1,\dots,x_n\}$, AMO permits at most one true input:
 \begin{equation}
 \sum_{i=1}^{n} x_i \leq 1
 \end{equation}
-Translating this pseudo-Boolean cardinality constraint into Conjunctive Normal Form (CNF) requires balancing formula size against the pruning strength of unit propagation. Five distinct encoding paradigms are implemented and benchmarked in this work.
+The five implementations encode this constraint in CNF with different auxiliary-variable and clause counts. All five propagate a true input to the falsity of every other AMO input.
 
-\subsubsection{Binomial (Pairwise) Encoding}
-The classical direct approach forbids every distinct pair of variables from being simultaneously true:
+\subsubsection{Binomial (pairwise) encoding}
+The pairwise encoding forbids every pair of inputs from being true together:
 \begin{equation}
 \Phi_{\text{binomial}} = \bigwedge_{1 \leq i < j \leq n} (\neg x_i \vee \neg x_j)
 \end{equation}
-This formulation introduces zero auxiliary variables but generates $\binom{n}{2} = O(n^2)$ binary clauses per constraint. When applied across all rows, columns, and diagonals of an $N \times N$ chessboard, the total clause count scales as $O(N^3)$. Notably, whenever any variable $x_i$ is assigned TRUE, standard unit propagation immediately forces all other literals $\neg x_j$ ($j \neq i$), thus achieving full Generalized Arc Consistency (GAC) without search.
+It uses no auxiliary variables and $\binom{n}{2}=O(n^2)$ binary clauses per AMO constraint. Across the board, the clause count is $O(N^3)$. If $x_i$ is true, unit propagation falsifies every other input $x_j$. This is generalized arc consistency (GAC) on the original AMO inputs.
 
-\subsubsection{Binary Encoding}
-The Binary encoding compacts the clause footprint by introducing $m = \lceil \log_2 n \rceil$ auxiliary Boolean variables $Y = \{y_0, y_1, \dots, y_{m-1}\}$, which function as a shared binary bit-register \cite{frisch2005sat}. Each index $k \in \{0, \dots, n-1\}$ possesses a unique $m$-bit binary expansion $k = \sum_{b=0}^{m-1} \text{bit}(k, b) \cdot 2^b$. 
+\subsubsection{Binary encoding}
+Binary encoding assigns each input a code over $m=\lceil\log_2n\rceil$ auxiliary bits $Y=\{y_0,\dots,y_{m-1}\}$ \cite{frisch2005sat}. Each index $k\in\{0,\dots,n-1\}$ has a unique expansion $k=\sum_{b=0}^{m-1}\text{bit}(k,b)2^b$.
 
-The bit-literal mapping function $\ell(k, b)$ is defined as:
+The literal required by bit $b$ of code $k$ is
 \begin{equation}
 \ell(k, b) = \begin{cases}
 y_b & \text{if bit } b \text{ of } k \text{ is } 1, \\
 \neg y_b & \text{if bit } b \text{ of } k \text{ is } 0.
 \end{cases}
 \end{equation}
-The complete Binary AMO formula is given in closed form by:
+The binary AMO formula is
 \begin{equation}
 \Phi_{\text{binary}} = \bigwedge_{k=0}^{n-1} \bigwedge_{b=0}^{m-1} (\neg x_k \vee \ell(k, b))
 \end{equation}
-If $x_k$ is true, unit propagation fixes every bit in $Y$. For every $j\ne k$, at least one required bit differs, and the corresponding binary clause immediately propagates $\neg x_j$. Thus this implementation is generalized arc consistent (GAC) with respect to the original AMO inputs; no claim is made about propagation completeness over arbitrary auxiliary assignments. It uses $\lceil\log_2n\rceil$ auxiliary variables and $n\lceil\log_2n\rceil$ binary clauses per constraint.
+If $x_k$ is true, unit propagation fixes every bit in $Y$. Each other input requires a different bit in at least one position, so its corresponding clause propagates $\neg x_j$. This establishes GAC on the original AMO inputs, not propagation completeness for arbitrary auxiliary assignments. The encoding uses $\lceil\log_2n\rceil$ auxiliary variables and $n\lceil\log_2n\rceil$ binary clauses per constraint.
 
-\subsubsection{Commander Encoding}
-Proposed by Klieber and Kwon \cite{klieber2007efficient}, the Commander encoding decomposes the set $X$ recursively. The variables are partitioned into disjoint groups $G_1, \dots, G_m$ of at most $g=3$ elements, following the implementation. For each group $G_k$, a new commander variable $c_k$ is instantiated to act as a group representative.
+\subsubsection{Commander encoding}
+Commander encoding partitions $X$ into groups $G_1,\dots,G_m$ of at most three inputs and applies the construction recursively \cite{klieber2007efficient}. Each group has one auxiliary commander variable $c_k$.
 
-The encoding consists of four complementary sets of clauses:
+The encoding has four clause sets:
 \begin{enumerate}
-    \item \textbf{Intra-group Pairwise AMO ($\Phi_{\text{intra}}$):} Ensures no two variables within the same group can be simultaneously true:
+    \item \textbf{Within-group AMO ($\Phi_{\text{intra}}$):} Forbid two true inputs in one group:
     \begin{equation}
     \Phi_{\text{intra}} = \bigwedge_{k=1}^{m} \bigwedge_{\substack{x_i, x_j \in G_k \\ i < j}} (\neg x_i \vee \neg x_j)
     \end{equation}
-    \item \textbf{Forward Implication ($\Phi_{\text{fwd}}$):} Dictates that if any element in $G_k$ is true, commander $c_k$ must be true:
+    \item \textbf{Forward implication ($\Phi_{\text{fwd}}$):} A true group input forces its commander true:
     \begin{equation}
     \Phi_{\text{fwd}} = \bigwedge_{k=1}^{m} \bigwedge_{x \in G_k} (\neg x \vee c_k)
     \end{equation}
-    \item \textbf{Reverse Implication ($\Phi_{\text{rev}}$):} Dictates that commander $c_k$ cannot be true unless at least one variable in $G_k$ is true:
+    \item \textbf{Reverse implication ($\Phi_{\text{rev}}$):} A true commander requires a true group input:
     \begin{equation}
     \Phi_{\text{rev}} = \bigwedge_{k=1}^{m} \left( \neg c_k \vee \bigvee_{x \in G_k} x \right)
     \end{equation}
-    \item \textbf{Commander AMO ($\Phi_{\text{cmd}}$):} Applies AMO recursively across the set of commander variables:
+    \item \textbf{Commander AMO ($\Phi_{\text{cmd}}$):} Apply AMO recursively to the commanders:
     \begin{equation}
     \Phi_{\text{cmd}} = \text{AMO}(\{c_1, c_2, \dots, c_m\})
     \end{equation}
 \end{enumerate}
-The recursion terminates at $n\leq3$ with pairwise AMO. The implementation includes reverse implications, so $c_k\leftrightarrow\bigvee_{x\in G_k}x$. The reverse clauses are optional for the projected AMO relation and for GAC on its input variables; forward implications, intra-group AMO, and recursive commander AMO already propagate $\neg x_j$ after one input $x_i$ becomes true \cite{klieber2007efficient}. The implemented version uses $O(n)$ auxiliary variables and clauses.
+The recursion terminates at $n\leq3$ with pairwise AMO. The implementation includes reverse implications, so $c_k\leftrightarrow\bigvee_{x\in G_k}x$. Reverse clauses are optional for the projected AMO relation and input GAC. Forward implications, within-group AMO, and recursive commander AMO already propagate $\neg x_j$ after $x_i$ becomes true \cite{klieber2007efficient}. The implemented version uses $O(n)$ auxiliary variables and clauses.
 
-\subsubsection{Sequential Counter Encoding}
-Introduced by Sinz \cite{sinz2005towards}, this encoding constructs an accumulator network. It introduces $n-1$ auxiliary variables $s_1, \dots, s_{n-1}$, where $s_i$ carries one-way prefix implications needed to detect a second true input; the clauses do not require $s_i$ to equal the prefix disjunction under every satisfying auxiliary assignment.
+\subsubsection{Sequential counter encoding}
+Sinz's sequential counter uses $n-1$ auxiliary variables $s_1,\dots,s_{n-1}$ \cite{sinz2005towards}. They carry the prefix implications needed to reject a second true input. The clauses do not force each $s_i$ to equal the prefix disjunction in every satisfying auxiliary assignment.
 
 The clauses enforce prefix propagation and collision prohibition:
 \begin{align}
@@ -181,10 +175,10 @@ The clauses enforce prefix propagation and collision prohibition:
 & \bigwedge_{i=2}^{n-1} \left( (\neg x_i \vee s_i) \wedge (\neg s_{i-1} \vee s_i) \wedge (\neg x_i \vee \neg s_{i-1}) \right) \\
 & (\neg x_n \vee \neg s_{n-1})
 \end{align}
-Sequential Counter introduces $n-1 = O(n)$ auxiliary variables and $3n - 4 = O(n)$ clauses per constraint. It maintains Generalized Arc Consistency via unit propagation: if $x_i = \text{TRUE}$, unit propagation cascades through $s_i \dots s_{n-1}$ to forbid all subsequent $x_j$ ($j > i$), while propagating backward to forbid all antecedent $x_j$ ($j < i$).
+The encoding uses $n-1=O(n)$ auxiliary variables and $3n-4=O(n)$ clauses per constraint. If $x_i$ is true, unit propagation follows the prefix chain to falsify later inputs and propagates backward to falsify earlier inputs. It is GAC on the original AMO inputs.
 
-\subsubsection{Product Encoding}
-The Product encoding decomposes $n$ variables onto a 2-dimensional grid \cite{chen2010new}. Grid dimensions $p = \lceil\sqrt{n}\rceil$ and $q = \lceil n/p \rceil$ are selected such that $n \leq p \times q$. Two sets of auxiliary coordinate variables are introduced: row coordinates $U = \{u_1, \dots, u_p\}$ and column coordinates $V = \{v_1, \dots, v_q\}$.
+\subsubsection{Product encoding}
+Product encoding places the $n$ inputs on a two-dimensional grid \cite{chen2010new}. It sets $p=\lceil\sqrt{n}\rceil$ and $q=\lceil n/p\rceil$, so $n\leq pq$. The auxiliary coordinates are $U=\{u_1,\dots,u_p\}$ and $V=\{v_1,\dots,v_q\}$.
 
 Each variable $x_k$ ($k \in \{0, \dots, n-1\}$) is mapped to grid coordinates $r = \lfloor k/q \rfloor + 1$ and $c = (k \bmod q) + 1$ via channeling clauses:
 \begin{equation}
@@ -198,21 +192,21 @@ To eliminate invalid phantom cells when $p \times q > n$, phantom clauses forbid
 \begin{equation}
 \Phi_{\text{phantom}} = \bigwedge_{r=1}^{p} \bigwedge_{\substack{c=1 \\ (r-1)q + (c-1) \geq n}}^{q} (\neg u_r \vee \neg v_c)
 \end{equation}
-\textbf{Threshold Optimization:} For short constraint sets ($n < 6$), especially diagonal slices near the corners of the chessboard, generating the 2D grid overhead is counterproductive. The implementation dynamically applies direct pairwise AMO for $n < 6$ and activates the 2D product grid only when $n \geq 6$. If $x_k$ is true, its two coordinate variables become true. Coordinate AMO then falsifies every other coordinate, and each other input differs on at least one coordinate; unit propagation therefore falsifies every other input. The implementation is GAC on original AMO inputs and uses $O(\sqrt{n})$ auxiliary variables and $O(n)$ clauses per constraint.
+For $n<6$, the implementation uses pairwise AMO instead of creating grid variables. For $n\geq6$, a true $x_k$ fixes its two coordinates. Coordinate AMO then falsifies every other input through at least one differing coordinate. The encoding is GAC on the original AMO inputs and uses $O(\sqrt{n})$ auxiliary variables and $O(n)$ clauses per constraint.
 
-\subsection{Baseline Exact Formulations}
+\subsection{Baseline exact formulations}
 
-\subsubsection{Constraint Programming Formulation (CP)}
-In Constraint Programming, the N-Queens problem is represented compactly using $N$ integer variables $Q = \{q_1, q_2, \dots, q_N\}$, where each variable $q_i \in \{1, \dots, N\}$ designates the column position of the queen in row $i$. The row constraints are implicitly satisfied by the variable index structure. The column and diagonal constraints are formulated via three global \texttt{AllDifferent} constraints:
+\subsubsection{Constraint programming formulation (CP)}
+The CP model uses $N$ integer variables $Q=\{q_1,\dots,q_N\}$. Variable $q_i\in\{1,\dots,N\}$ gives the queen's column in row $i$, so the variable indices enforce row occupancy. Three \texttt{AllDifferent} constraints enforce distinct columns and diagonals:
 \begin{align}
 & \text{AllDifferent}(q_1, q_2, \dots, q_N) \\
 & \text{AllDifferent}(q_1 + 1, q_2 + 2, \dots, q_N + N) \\
 & \text{AllDifferent}(q_1 - 1, q_2 - 2, \dots, q_N - N)
 \end{align}
-The model supplies three \texttt{AllDifferent} constraints. Régin's matching algorithm is one possible generalized arc-consistency method \cite{regin1994filtering}; the actual propagation depends on the solver, its version, and presolve settings. In particular, CP-SAT may combine Boolean decompositions, bounds propagation, and matching-based filtering \cite{ortools}. No filtering complexity for a specific run is inferred from this model description.
+Régin's matching algorithm is one possible way to enforce GAC for \texttt{AllDifferent} \cite{regin1994filtering}. This model does not establish which propagators or presolve steps either CP solver used in a particular run.
 
-\subsubsection{Integer Linear Programming Formulation (ILP)}
-In Integer Linear Programming, the board is modeled using $N^2$ binary decision variables $x_{i,j} \in \{0, 1\}$, where $x_{i,j} = 1$ if and only if a queen occupies cell $(i, j)$. The non-attacking requirements are encoded as four systems of linear equations and inequalities:
+\subsubsection{Integer linear programming formulation (ILP)}
+The ILP model uses $N^2$ binary variables $x_{i,j}$, where $x_{i,j}=1$ exactly when cell $(i,j)$ contains a queen. Four families of linear constraints enforce non-attacking placement:
 \begin{align}
 & \sum_{j=1}^{N} x_{i,j} = 1 \quad \forall i \in \{1, \dots, N\} \quad \text{(Row constraints)} \\
 & \sum_{i=1}^{N} x_{i,j} = 1 \quad \forall j \in \{1, \dots, N\} \quad \text{(Column constraints)} \\
@@ -220,16 +214,16 @@ In Integer Linear Programming, the board is modeled using $N^2$ binary decision 
 & \sum_{\substack{1 \leq i, j \leq N \\ i + j = s}} x_{i,j} \leq 1 \quad \forall s \in \{2, \dots, 2N\} \quad \text{(Anti-diagonals)}
 \end{align}
 
-\subsection{Complexity Comparison}
-Table \ref{tab:complexity} summarizes the asymptotic complexities of the implemented AMO encodings when applied to the full N-Queens problem. For an $N \times N$ board, the AMO constraint is applied to $N$ rows, $N$ columns, and $O(N)$ diagonals (each of length up to $N$).
+\subsection{Complexity comparison}
+Table~\ref{tab:complexity} gives asymptotic counts for the complete SAT models. An $N\times N$ board has $N$ rows, $N$ columns, and $O(N)$ diagonals, each with at most $N$ cells.
 
 \begin{table}
 \centering
-\caption{Asymptotic Complexity of N-Queens SAT Encodings}
+\caption{Asymptotic size of the N-Queens SAT encodings}
 \label{tab:complexity}
 \begin{tabular}{@{}lllc@{}}
 \toprule
-Encoding Scheme & Total Variables & Total Clauses & Input GAC via UP \\ \midrule
+Encoding & Total variables & Total clauses & Input GAC via UP \\ \midrule
 Binomial (Pairwise) & $N^2$ & $O(N^3)$ & Yes \\
 Binary & $N^2 + O(N \log N)$ & $O(N^2 \log N)$ & Yes \\
 Commander & $N^2 + O(N^2)$ & $O(N^2)$ & Yes \\
@@ -258,21 +252,21 @@ a(k)=m+a(m),\qquad c(k)=\sum_j\binom{t_j}{2}+k+m+c(m).
 \end{equation}
 The pairwise case is the recursion base. The $m$ reverse clauses are included in the count. These expressions count generated clauses before solver preprocessing.
 
-\section{Experimental Results \& Comparative Analysis}
+\section{Experimental results and comparison}
 
-\subsection{Experimental Setup}
-The archived dataset contains 116 aggregate rows across $N\in\{4,8,10,15,20,25,30,40,50,75,100,150,200\}$. It was collected on a Windows machine described in the original experiment as having an Intel Core processor and 16~GB of RAM; the exact CPU model, package versions at collection time, random seeds, solver thread counts, and per-run measurements were not retained. These omissions limit independent reproduction and statistical inference. The five SAT formulations use Glucose4 through PySAT \cite{ignatiev2018pysat}; the comparison models use CBC through PuLP, Gurobi, CPLEX MIP, OR-Tools CP-SAT, and CPLEX CP Optimizer \cite{mitchell1996lp,gurobi,cplex,ortools}.
+\subsection{Experimental setup}
+The archived dataset contains 116 aggregate rows across $N\in\{4,8,10,15,20,25,30,40,50,75,100,150,200\}$. The original description identifies a Windows machine with an Intel Core processor and 16~GB of RAM. It omits the exact CPU model, package versions, random seeds, solver thread counts, and individual runs. These gaps limit reproduction and statistical inference. The SAT models use Glucose4 through PySAT \cite{ignatiev2018pysat}. The baselines use CBC through PuLP, Gurobi, CPLEX MIP, OR-Tools CP-SAT, and CPLEX CP Optimizer \cite{mitchell1996lp,gurobi,cplex,ortools}.
 
-The archived CSV reports construction time, solver invocation time, and their sum in seconds. SAT solution extraction was performed after the solver timer stopped; equivalent postprocessing was also outside the reported total for the other models. Therefore, the displayed times are \emph{not} end-to-end latencies. The historical scripts contain both a 120-s, two-repeat configuration and a 300-s, three-repeat configuration, and raw repetitions are unavailable. The exact originating protocol for each archived row cannot be recovered. The revised runner records per-repeat status, full-process deadlines, wall time, validation, package versions, and worker count without overwriting this archive; its outputs are kept separate from the historical tables and figures below.
+The archived CSV reports construction time, solver invocation time, and their sum in seconds. Solution extraction and equivalent postprocessing occur after the solver timer stops, so these totals exclude end-to-end latency. The historical scripts contain both a 120-s, two-repeat configuration and a 300-s, three-repeat configuration. Raw repetitions are unavailable, so the originating protocol of each archived row cannot be recovered. The revised runner records each status, deadline, wall time, solution validation, package version, and worker count. It leaves the archive unchanged and stores new measurements separately.
 
 Solver coverage differs. Only Binary among the five SAT encodings was recorded at $N=150$ and $N=200$; Product ends at $N=50$, while pairwise, Commander, and Sequential end at $N=100$. CBC ends at $N=100$. Gurobi and CP-SAT have recorded results through $N=200$. Missing entries must be read as \emph{not evaluated}, except entries marked with a license symbol. CPLEX MIP Community is limited to 1,000 variables or constraints; its $N=40$ model already has 1,600 binary variables. CP Optimizer Community applies a search-space limit of $2^{1000}$, which prevents the recorded $N=150$ and $N=200$ models from being evaluated under that license. These limits differ from the academic Gurobi license used for the archived Gurobi rows.
 
-\subsection{SAT Encoding Comparison}
-Table \ref{tab:sat_sizes} illustrates the formula size generated by different encodings at key problem sizes.
+\subsection{SAT encoding comparison}
+Table~\ref{tab:sat_sizes} gives the generated formula sizes at three board dimensions.
 
 \begin{table}
 \centering
-\caption{Variables and Clauses generated by each SAT Encoding}
+\caption{Variables and clauses generated by each SAT encoding}
 \label{tab:sat_sizes}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
@@ -286,7 +280,7 @@ Product & 1,190 & 4,524 & 5,890 & 30,330 & 19,428 & 117,736 \\ \bottomrule
 \end{tabular}
 \end{table}
 
-Table \ref{tab:sat_sizes} lists generated CNF sizes, while Figure \ref{fig:vars_clauses} plots the sizes present in the archived CSV. Pairwise AMO has no auxiliary variables but reaches 1,646,900 clauses at $N=100$. Sequential uses 49,402 total variables at that size. Product uses 117,736 clauses at $N=100$, slightly fewer than Sequential's 117,812, although no Product runtime is recorded there. The Product size at $N=100$ is computed from the unchanged encoder and the exact counting recurrence above; it is neither a new timing observation nor a point in Figure \ref{fig:vars_clauses}.
+Figure~\ref{fig:vars_clauses} plots sizes present in the archived benchmark. At $N=100$, the pairwise model has 1,646,900 clauses without auxiliary variables, while Sequential uses 49,402 variables. Product produces 117,736 clauses, but its $N=100$ size is computed from the encoder rather than observed in the archived timing data. It is therefore absent from Figure~\ref{fig:vars_clauses}.
 
 \begin{figure}
 \centering
@@ -295,7 +289,7 @@ Table \ref{tab:sat_sizes} lists generated CNF sizes, while Figure \ref{fig:vars_
 \label{fig:vars_clauses}
 \end{figure}
 
-Table \ref{tab:sat_times} reports the archived construction-plus-solver-call time for SAT; dashes mean that a runtime was not recorded. Figure \ref{fig:encoding_time} shows construction time, while Figure \ref{fig:performance_comparison} shows solver invocation time.
+Table~\ref{tab:sat_times} reports archived construction-plus-solver-call time; dashes denote unmeasured cases. Figure~\ref{fig:encoding_time} shows construction time, and Figure~\ref{fig:performance_comparison} shows solver invocation time.
 
 \begin{table}
 \centering
@@ -314,7 +308,7 @@ N & Binomial & Binary & Commander & Sequential & Product \\ \midrule
 \end{tabular}
 \end{table}
 
-Within the common SAT measurements, Commander has the lowest recorded total at $N=20$ (0.0192~s) and $N=50$ (0.1212~s), while Binary is lowest at $N=75$ (0.3998~s) and $N=100$ (0.5815~s). At $N=8$, pairwise and Sequential both round to 0.0018~s; the underlying CSV values differ by only six microseconds, so no meaningful winner is identified. Binary's 1.5867~s and 3.2073~s at $N=150$ and $N=200$ have no same-size SAT competitor in the archive. Sequential's 68.1819~s at $N=100$ is an observation; the available data do not establish whether auxiliary-variable branching, propagation cost, or clause learning caused it.
+Commander has the lowest archived SAT time at $N=20$ and $N=50$; Binary is lowest at $N=75$ and $N=100$ among the encodings measured at each size. At $N=150$ and $N=200$, only Binary has an archived SAT measurement. The archive cannot rank the five encodings at those sizes or explain Sequential's slower $N=100$ result.
 
 \begin{figure}
 \centering
@@ -330,8 +324,8 @@ Within the common SAT measurements, Commander has the lowest recorded total at $
 \label{fig:performance_comparison}
 \end{figure}
 
-\subsection{SAT vs ILP vs CP Comparison}
-Table \ref{tab:method_comparison} reports the minimum recorded SAT time for each $N$ alongside the ILP and CP baselines. This ``Best SAT'' column is a retrospective lower envelope, not a solver-selection procedure available before running the encodings.
+\subsection{SAT, ILP, and CP comparison}
+Table~\ref{tab:method_comparison} places the ILP and CP baselines beside the minimum recorded SAT time at each size. Its ``Best SAT'' column is a retrospective minimum, not a prospective solver-selection rule.
 
 \begin{table}
 \centering
@@ -353,7 +347,7 @@ N & Best SAT & ILP (CBC) & ILP (Gurobi) & ILP (CPLEX) & CP (CPLEX) & CP-SAT & Be
 \end{tabular}
 \end{table}
 
-Table \ref{tab:method_comparison}, Figure \ref{fig:exact_comparison}, and Figure \ref{fig:heatmap} show the recorded comparison through $N=200$. The best-SAT series is a retrospective lower envelope; at $N=150$ and $N=200$ it contains only Binary/Glucose4, because no other SAT encoding was measured there. Gurobi has the lowest listed construction-plus-solver-call time at $N=150$ (0.364~s) and $N=200$ (0.601~s) under its academic license. At these sizes, Binary/Glucose4 records 1.587~s and 3.207~s, while CP-SAT records 14.953~s and 22.487~s. The $N=200$ ratio of CP-SAT to Binary is approximately 7.01 for this recorded metric; it does not include solution extraction or establish a general ranking among SAT encodings. CPLEX Community license limits and deliberately unmeasured cases prevent a complete method-by-size matrix. CBC records 10.413~s at $N=100$, but a small, non-monotone series does not establish an asymptotic growth law. No solver-internal presolve or clause-learning explanation is inferred from these times.
+Table~\ref{tab:method_comparison} and Figures~\ref{fig:exact_comparison} and \ref{fig:heatmap} compare the archived methods through $N=200$. At $N=200$, Gurobi records 0.601~s, Binary/Glucose4 3.207~s, and CP-SAT 22.487~s for construction plus solver invocation. Binary is the only SAT encoding measured at this size, and CPLEX Community license limits remove several baseline cells. These observations do not identify a general solver ranking or the cause of any runtime difference.
 
 \begin{figure}
 \centering
@@ -379,8 +373,8 @@ Figure \ref{fig:cactus_plot} sorts each method's recorded construction-plus-solv
 \label{fig:cactus_plot}
 \end{figure}
 
-\subsection{Controlled Protocol Check}
-A separate run evaluated Binary/Glucose4, Gurobi, and CP-SAT at five common sizes with three repetitions per method and size, one solver worker, a 120-s full-process deadline, and validation of every returned placement. The machine ran Windows~11 on an AMD processor with 16 logical CPUs. Python~3.14.4, PySAT~1.9.dev15, Gurobi~13.0.3, and OR-Tools~9.15.6755 were recorded in the accompanying metadata. The source working tree was modified at collection time, so this run is not tied to a clean commit. Table~\ref{tab:controlled} gives the median construction-plus-solver-call time; all 45 runs returned valid placements. The raw repetitions, summary, and environment metadata are supplied in the \texttt{new\_benchmark/} directory under \path{nqueens_sat/results/benchmarks/}.
+\subsection{Controlled protocol check}
+An earlier controlled run tested Binary/Glucose4, Gurobi, and CP-SAT at five sizes, with three repetitions and a 120-s full-process deadline per case. All 45 runs returned valid placements. The run used one solver worker on Windows~11; its metadata record the processor and package versions. Because the source tree was modified during collection, this run is not tied to a clean commit. Table~\ref{tab:controlled} reports medians. Raw records and metadata are in \texttt{new\_benchmark/} under \path{nqueens_sat/results/benchmarks/}.
 
 \begin{center}
 \captionof{table}{Separate controlled run: median construction plus solver invocation time (s), three repetitions per cell}
@@ -396,13 +390,13 @@ $N$ & Binary/Glucose4 & Gurobi & CP-SAT \\ \midrule
 \end{tabular}
 \end{center}
 
-At $N=200$, the corresponding median within-worker wall times, including solution extraction, were 3.166, 0.567, and 49.921~s. The controlled CP-SAT median differs substantially from the archived 22.487~s, while the archived run lacks enough configuration detail to isolate the cause. Results from the two datasets are therefore not pooled or interpreted as a statistical comparison. This check confirms that the revised protocol records complete, valid runs; it does not establish a ranking for the SAT encodings absent from this run.
+At $N=200$, the controlled CP-SAT median is 49.921~s, compared with 22.487~s in the archived benchmark. The archived protocol lacks enough detail to explain the difference, so the datasets are not pooled. This controlled run includes only one SAT encoding and cannot rank the other four.
 
 \clearpage
-\subsection{Clean-Source Common-Size Comparison}
-Two additional runs applied the same eight methods to $N\in\{20,50,100\}$ and $N\in\{150,200\}$. Each method--size cell was repeated three times with one solver worker and a 120-s deadline covering the complete worker process. Both runs used clean working trees and identical Python source files. Their public metadata record the same SHA-256 source fingerprint. The smaller-board and large-board data are stored in \texttt{common\_small\_benchmark/} and \texttt{large\_n\_benchmark/}, respectively, under \path{nqueens_sat/results/benchmarks/}. Both directories include raw repetitions, summaries, package versions, and environment metadata. Returned placements were validated. CPLEX was excluded because the available Community licenses prevent a like-for-like comparison over the full size range. These two runs are distinct from the archive and the earlier 45-run protocol check.
+\subsection{Clean-source comparison at common sizes}
+Two clean-source runs tested the same eight methods at $N\in\{20,50,100,150,200\}$. Each method-size cell had three repetitions, one solver worker, and a 120-s full-process deadline. The Python source was identical in both runs, and every returned placement was validated. The metadata include matching SHA-256 source fingerprints and package versions. Raw records and summaries are in \texttt{common\_small\_benchmark/} and \texttt{large\_n\_benchmark/} under \path{nqueens_sat/results/benchmarks/}. CPLEX was excluded because its available Community licenses do not cover the full size range.
 
-Table~\ref{tab:common_small} gives median construction-plus-solver-call times at the three smaller sizes. All five SAT encodings completed every repetition. CBC timed out in all three $N=20$ attempts despite completing at $N=50$ and $N=100$; this non-monotone observation is not evidence of an asymptotic law or proof that the $N=20$ model is infeasible. The raw CSV retains each run's status and duration.
+Table~\ref{tab:common_small} gives medians for the three smaller sizes. Every SAT encoding completed all repetitions. CBC timed out in all three $N=20$ runs but completed its $N=50$ and $N=100$ runs. This non-monotone observation does not imply that the $N=20$ model is infeasible. The raw CSV records each status and duration.
 
 \begin{center}
 \centering
@@ -422,7 +416,7 @@ CP-SAT & 0.044 & 0.311 & 1.740 \\ \bottomrule
 \end{tabular}
 \end{center}
 
-Table~\ref{tab:large_n} reports the median and the minimum--maximum range of construction-plus-solver-call time at the two larger sizes for cells with three successful runs. The range describes the observed repetitions; it is not a confidence interval. A timeout has no measured completion time and is excluded from a median.
+Table~\ref{tab:large_n} reports medians and observed minimum and maximum times at $N=150$ and $N=200$. It shows a median only when all three runs completed. The ranges are descriptive, not confidence intervals; timeout cells have no completion-time median.
 
 \begin{center}
 \centering
@@ -443,33 +437,32 @@ CP-SAT & 12.252 [11.933, 12.491] & 44.776 [38.479, 45.935] \\ \bottomrule
 \end{tabular}
 \end{center}
 
-Product has the lowest observed SAT median at $N=150$, and Commander has the lowest at $N=200$. Both differ from the archive's apparent ``Best SAT'' at these sizes because Binary was its only measured SAT encoding. Gurobi has the lowest recorded median among the tested paradigms at both sizes. Sequential and CBC reach the full-process deadline in all three $N=200$ runs; no runtime or SAT/UNSAT conclusion is assigned to those cells. As with the archived metric, the reported times exclude solution extraction and worker startup. Only five empty-board sizes and three repetitions per cell were tested, so neither asymptotic behavior nor performance on completion instances follows from this ranking.
+Product has the lowest SAT median at $N=150$; Commander has the lowest at $N=200$. Gurobi has the lowest median among all tested methods at both sizes. These SAT results differ from the archived ``Best SAT'' column because only Binary was measured there. Sequential and CBC timed out in all three $N=200$ runs, so neither has a completion-time median or a SAT/UNSAT result at that size. The reported metric excludes solution extraction and worker startup. Five feasible board sizes and three repetitions per cell cannot establish asymptotic behavior or performance on completion instances.
 
-\subsection{Propagation and Interpretation of the Measurements}
-For an isolated AMO constraint, pairwise clauses immediately falsify all other inputs after one input becomes true. The Binary encoding fixes a unique auxiliary bit pattern, and every other input disagrees with at least one bit. The Product encoding fixes one row and one column coordinate and eliminates every other input through coordinate AMO. Commander and Sequential propagate the same input consequence through their respective hierarchical and prefix structures. Thus all five implemented encodings are GAC on the original inputs of one AMO constraint. This statement does not imply that unit propagation alone solves the complete N-Queens formula.
+\subsection{Propagation and interpretation}
+The clauses in Section~3 show that each implemented encoding is GAC on the original inputs of an isolated AMO constraint. This property does not mean that unit propagation alone solves the complete N-Queens formula.
 
-The structural differences could affect Glucose4's branching, propagation, conflicts, and learned clauses \cite{marques2009cdcl,audemard2009predicting}. The archive has no solver-internal counters; the clean-source raw data record aggregate conflicts, decisions, propagations, and restarts for completed SAT runs, but not decisions on auxiliary variables, learned-clause LBD distributions, deletion events, or controlled ablations. In particular, a long sequential implication chain can be traversed within one decision level; its length does not imply high LBD. Likewise, binary original clauses do not guarantee short learned clauses. The observed runtime ordering is therefore reported without attributing it to VSIDS distortion or low-LBD ``glue'' clauses.
+Encoding structure can affect Glucose4's decisions, propagation, conflicts, and learned clauses \cite{marques2009cdcl,audemard2009predicting}. The archived benchmark has no solver-internal counters. The clean-source CSVs record aggregate conflicts, decisions, propagations, and restarts, but not learned-clause LBD distributions or decisions on auxiliary variables. A long implication chain need not span many decision levels, and binary original clauses do not guarantee short learned clauses. The timing data therefore cannot attribute the observed ordering to a specific CDCL mechanism.
 
-The historical plots have unequal solver coverage and no raw repetition-level uncertainty. The two clean-source runs supply raw repetitions for five common sizes but no independent machine or seeded ablation. The N-Queens empty-board feasibility problem has known polynomial constructions, so trends from this instance family should not be generalized to hard completion instances or other combinatorial domains \cite{gent2017complexity}. A broader follow-up should fix seeds where supported, use additional machines, and include both SAT and UNSAT completion instances.
+Archived figures have unequal method coverage and no run-level uncertainty. The clean-source runs provide raw repetitions at five sizes, but they use one machine and no seeded ablation. Empty-board N-Queens has polynomial constructions, so these timings cannot be generalized to harder completion instances or other combinatorial domains \cite{gent2017complexity}.
 
 \FloatBarrier
-\section{Conclusion \& Future Work}
-This study compared five established SAT AMO encodings and ILP/CP baselines for finding one placement on an empty N-Queens board. Formula sizes follow the stated construction, and the archived tables agree with the CSV to the displayed precision. In the archive, Binary/Glucose4 records 3.207~s at $N=200$, compared with 22.487~s for CP-SAT and 0.601~s for Gurobi; no other SAT encoding was recorded at that size. The two clean-source runs cover all five SAT encodings at $N\in\{20,50,100,150,200\}$. At $N=200$, Commander, Product, and Binary record medians of 2.252, 2.806, and 3.208~s, respectively, while Sequential and CBC time out in all three attempts. These results correct the coverage gap but do not establish a general scalability claim. The construction-plus-solver-call metric excludes solution extraction, and the historical run-level provenance remains incomplete.
+\section{Conclusion and future work}
+This study compared five established AMO encodings with ILP and CP baselines for empty-board N-Queens. The clean-source runs provide a common-size comparison missing from the archived benchmark. Commander has the lowest SAT median at $N=200$, while Gurobi has the lowest median among the tested methods. Sequential and CBC timed out in all three runs at that size. These findings concern construction-plus-solver-call time on one machine and do not establish general scalability or performance on hard N-Queens variants.
 
-Further work should compare Commander with and without reverse implications, test Product threshold and phantom-clause choices, and evaluate a valid symmetry-breaking constraint under the same protocol for every paradigm. Solver-level counts of conflicts, decisions, propagations, and learned-clause LBD would permit the proposed CDCL explanations to be tested. Harder N-Queens Completion or blocked-board families, including infeasible instances, would broaden the evidence beyond empty-board feasibility.
+To test whether encoding structure explains the observed SAT ordering, a follow-up should vary Commander implications, Product grid choices, and symmetry breaking under the same protocol. Learned-clause LBD and branching measurements would help distinguish propagation cost from search effects. To test generality, the same comparison should include feasible and infeasible completion instances, additional seeds, and independent machines.
 
-\section*{CRediT Authorship Contribution Statement}
+\section*{CRediT authorship contribution statement}
 \textbf{Vu Minh Hoang:} Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data Curation, Writing - Original Draft, Writing - Review \& Editing, Visualization.
 
-\section*{Declaration of Competing Interest}
+\section*{Declaration of competing interest}
 The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
 
-\section*{Declaration of Generative AI and AI-Assisted Technologies}
-During the preparation of this work, the author utilized generative AI tools to assist in code optimization, visualization aesthetics, and LaTeX formatting. The author reviewed and edited the manuscript and takes full responsibility for the content.
+\section*{Declaration of generative AI and AI-assisted technologies}
+The author used generative AI tools to assist with code revisions, figure design, and LaTeX formatting. The author reviewed the resulting code, figures, and text and remains responsible for the manuscript.
 
-\clearpage
-\section*{Data Availability}
-The source, archived aggregate CSV, figures, and this manuscript are available at \url{https://github.com/Ohhalo02/nqueens-sat-optimization-01}. The earlier controlled check and two clean-source experiments have per-repeat records, summaries, and metadata in separate directories under \path{nqueens_sat/results/benchmarks/}. The clean-source metadata include a SHA-256 fingerprint of the Python files used by both runs. The historical CSV has no raw repetitions or complete provenance; the four datasets are not pooled.
+\section*{Data availability}
+The source code, figures, and manuscript are available at \url{https://github.com/Ohhalo02/nqueens-sat-optimization-01}. The archived aggregate data are in \path{nqueens_sat/results/benchmark_results.csv}. The three later datasets are in separate directories under \path{nqueens_sat/results/benchmarks/}; each has per-run records, a summary CSV, and environment metadata. The two clean-source metadata files include the same SHA-256 fingerprint for the Python source used in those runs. The archived data lack raw repetitions and complete provenance, so the four datasets are not pooled.
 
 \bibliographystyle{cas-model2-names}
 \bibliography{references}
