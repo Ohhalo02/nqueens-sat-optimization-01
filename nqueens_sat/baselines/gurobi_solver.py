@@ -19,6 +19,8 @@ class GurobiSolver:
             env = gp.Env(empty=True)
             env.setParam("OutputFlag", 0)
             env.start()
+            setup_time = time.perf_counter() - t0
+            encoding_start = time.perf_counter()
             m = gp.Model("nqueens", env=env)
             m.setParam('TimeLimit', time_limit)
             m.setParam('Threads', 1)
@@ -26,11 +28,15 @@ class GurobiSolver:
             m.addConstrs((x.sum(i, '*') == 1 for i in range(n)))
             m.addConstrs((x.sum('*', j) == 1 for j in range(n)))
             for d in range(-(n-1), n):
-                m.addConstr(gp.quicksum(x[i, i-d] for i in range(n) if 0 <= i-d < n) <= 1)
+                diagonal = [x[i, i-d] for i in range(n) if 0 <= i-d < n]
+                if len(diagonal) > 1:
+                    m.addConstr(gp.quicksum(diagonal) <= 1)
             for s in range(0, 2*n - 1):
-                m.addConstr(gp.quicksum(x[i, s-i] for i in range(n) if 0 <= s-i < n) <= 1)
+                diagonal = [x[i, s-i] for i in range(n) if 0 <= s-i < n]
+                if len(diagonal) > 1:
+                    m.addConstr(gp.quicksum(diagonal) <= 1)
             
-            encoding_time = time.perf_counter() - t0
+            encoding_time = time.perf_counter() - encoding_start
             t_solve = time.perf_counter()
             m.optimize()
             solving_time = time.perf_counter() - t_solve
@@ -53,6 +59,7 @@ class GurobiSolver:
                 'native_status': int(m.status),
                 'satisfiable': True if status == 'SAT' else False if status == 'UNSAT' else None,
                 'solution': solution, 'num_vars': n*n, 'num_clauses': m.NumConstrs, 'num_aux_vars': 0,
+                'setup_time': setup_time,
                 'encoding_time': encoding_time, 'solving_time': solving_time, 'decode_time': decode_time,
                 'total_time': encoding_time + solving_time, 'wall_total': time.perf_counter() - t0,
                 'encoder_name': self.name

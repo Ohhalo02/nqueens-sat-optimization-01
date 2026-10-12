@@ -36,6 +36,5 @@ venv/
 # Archives
 *.zip
 
-# Private review material and local history backup
 /audit/
 /pre-audit-cleanup-*.bundle

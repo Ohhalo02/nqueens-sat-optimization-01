@@ -6,6 +6,7 @@ creates a run directory with raw repetitions, a summary, and environment metadat
 
 import argparse
 import csv
+import hashlib
 import importlib.metadata
 import json
 import multiprocessing as mp
@@ -48,15 +49,15 @@ SOLVERS = {
 }
 SIZES = (4, 8, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200)
 RAW_FIELDS = ('encoder_name', 'n', 'repeat', 'status', 'satisfiable', 'num_vars',
-              'num_clauses', 'num_aux_vars', 'encoding_time', 'solving_time',
+              'num_clauses', 'num_aux_vars', 'setup_time', 'encoding_time', 'solving_time',
               'decode_time', 'total_time', 'wall_total', 'process_wall_time',
               'conflicts', 'decisions', 'propagations', 'restarts', 'native_status',
               'error_type')
 SUMMARY_FIELDS = ('encoder_name', 'n', 'status', 'n_repeats', 'n_success',
                   'satisfiable', 'num_vars', 'num_clauses', 'num_aux_vars',
-                  'encoding_time', 'solving_time', 'decode_time', 'total_time',
+                  'setup_time', 'encoding_time', 'solving_time', 'decode_time', 'total_time',
                   'wall_total', 'conflicts', 'decisions', 'propagations', 'restarts')
-METRICS = ('encoding_time', 'solving_time', 'decode_time', 'total_time',
+METRICS = ('setup_time', 'encoding_time', 'solving_time', 'decode_time', 'total_time',
            'wall_total', 'conflicts', 'decisions', 'propagations', 'restarts')
 
 
@@ -68,7 +69,6 @@ def _worker(send_end, name, n, time_limit):
             status = 'INVALID_SOLUTION'
             result['satisfiable'] = None
         result['status'] = status
-        result.pop('solution', None)
         send_end.send(result)
     except BaseException as exc:
         send_end.send({'encoder_name': name, 'status': 'ERROR',
@@ -86,7 +86,19 @@ def run_once(name, n, wall_limit):
     try:
         process.start()
         send_end.close()
-        process.join(wall_limit)
+        # Drain the pipe before joining: a large witness can otherwise block send().
+        result = None
+        while time.perf_counter() - started < wall_limit:
+            remaining = wall_limit - (time.perf_counter() - started)
+            if receive_end.poll(max(0, min(0.1, remaining))):
+                try:
+                    result = receive_end.recv()
+                except EOFError:
+                    pass
+                break
+            if not process.is_alive():
+                break
+        process.join(max(0, wall_limit - (time.perf_counter() - started)))
         if process.is_alive():
             # CBC may have launched an external executable from the worker.
             # On Windows, terminate its process tree before the Python worker.
@@ -102,9 +114,12 @@ def run_once(name, n, wall_limit):
                 process.kill()
                 process.join()
             result = {'encoder_name': name, 'status': 'TIMEOUT', 'satisfiable': None}
-        elif receive_end.poll():
-            result = receive_end.recv()
-        else:
+        elif result is None and receive_end.poll():
+            try:
+                result = receive_end.recv()
+            except EOFError:
+                pass
+        if result is None:
             result = {'encoder_name': name, 'status': 'ERROR', 'satisfiable': None,
                       'error_type': f'WorkerExit{process.exitcode}'}
         result['process_wall_time'] = time.perf_counter() - started
@@ -120,6 +135,7 @@ def _scalar_row(name, n, repetition, result):
     stats = result.get('statistics') or {}
     row = {'encoder_name': name, 'n': n, 'repeat': repetition,
            **{key: result.get(key) for key in RAW_FIELDS if key not in ('encoder_name', 'n', 'repeat')}}
+    row['setup_time'] = result.get('setup_time', 0.0)
     for key in ('conflicts', 'decisions', 'propagations', 'restarts'):
         row[key] = stats.get(key, row.get(key))
     return row
@@ -155,16 +171,24 @@ def _metadata(args, run_id):
             versions[package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             versions[package] = None
+    source_hash = hashlib.sha256()
+    for source in sorted(HERE.rglob('*.py'), key=lambda p: p.relative_to(ROOT).as_posix()):
+        source_hash.update(source.relative_to(ROOT).as_posix().encode('utf-8') + b'\0')
+        source_hash.update(source.read_bytes() + b'\0')
     return {'run_id': run_id, 'created_utc': datetime.now(timezone.utc).isoformat(),
             'source_commit': git('rev-parse', 'HEAD'),
             'source_dirty': bool(git('status', '--porcelain')),
+            'source_python_sha256': source_hash.hexdigest(),
+            'source_python_hash_scope': 'sorted nqueens_sat/**/*.py; relative path + NUL + bytes + NUL',
             'python': sys.version, 'python_executable_name': pathlib.Path(sys.executable).name,
             'platform': platform.platform(), 'processor': platform.processor(),
             'logical_cpus': os.cpu_count(), 'package_versions': versions,
             'solver_workers': 1, 'selected_solvers': args.solvers,
             'selected_sizes': args.sizes, 'requested_repeats': args.repeats,
             'wall_limit_seconds_per_repeat': args.wall_limit,
-            'timing_definition': {'total_time': 'model construction + solver invocation',
+            'sat_backend': 'Glucose4',
+            'timing_definition': {'setup_time': 'explicit environment/license initialization (Gurobi); zero otherwise',
+                                  'total_time': 'model construction + solver invocation; excludes explicit setup',
                                   'wall_total': 'inside solve(), including solution extraction',
                                   'process_wall_time': 'parent clock, including worker startup and validation'},
             'summary_statistic': 'median of complete repetitions'}
@@ -186,7 +210,8 @@ def main(argv=None):
     output.mkdir(parents=True, exist_ok=False)
     (output / 'metadata.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
     with (output / 'raw.csv').open('w', newline='', encoding='utf-8') as raw_file, \
-         (output / 'summary.csv').open('w', newline='', encoding='utf-8') as summary_file:
+         (output / 'summary.csv').open('w', newline='', encoding='utf-8') as summary_file, \
+         (output / 'runs.jsonl').open('w', encoding='utf-8') as witness_file:
         raw_writer = csv.DictWriter(raw_file, fieldnames=RAW_FIELDS)
         summary_writer = csv.DictWriter(summary_file, fieldnames=SUMMARY_FIELDS)
         raw_writer.writeheader()
@@ -197,6 +222,8 @@ def main(argv=None):
                 for repetition in range(1, args.repeats + 1):
                     result = run_once(name, n, args.wall_limit)
                     row = _scalar_row(name, n, repetition, result)
+                    witness_file.write(json.dumps({**row, 'solution': result.get('solution')}) + '\n')
+                    witness_file.flush()
                     raw_writer.writerow(row)
                     raw_file.flush()
                     rows.append(row)

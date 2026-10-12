@@ -1,14 +1,17 @@
 import pandas as pd
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import hashlib
 import json
 import shutil
+import tempfile
 from pathlib import Path
 import numpy as np
 import matplotlib.colors as mcolors
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import NullFormatter
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SAVE_DIRS = [
@@ -48,9 +51,21 @@ COLORS = {
     'Best SAT': '#27ae60',           # Dark Green
 }
 
+LABELS = {'BinomialEncoder': 'Binomial', 'BinaryEncoder': 'Binary',
+          'CommanderEncoder': 'Commander', 'SequentialEncoder': 'Sequential',
+          'ProductEncoder': 'Product', 'ILP-PuLP-CBC': 'CBC',
+          'ILP-Gurobi': 'Gurobi', 'ILP-CPLEX': 'CPLEX MIP',
+          'CP-CPLEX': 'CP Optimizer', 'CP-SAT-ORTools': 'CP-SAT'}
+
+
+def compact_legend(axis):
+    handles, labels = axis.get_legend_handles_labels()
+    axis.legend(handles, [LABELS.get(label, label) for label in labels],
+                bbox_to_anchor=(1.02, 1), loc='upper left')
+
 def load_results(csv_path=None):
     if csv_path is None:
-        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmark_results.csv')
+        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmarks', 'comparison.csv')
     if not os.path.exists(csv_path):
         raise FileNotFoundError(csv_path)
     df = pd.read_csv(csv_path)
@@ -60,10 +75,14 @@ def load_results(csv_path=None):
         raise ValueError(f'Missing benchmark columns: {sorted(required - set(df.columns))}')
     if df.duplicated(['encoder_name', 'n']).any():
         raise ValueError('Duplicate solver and board-size pair in benchmark CSV')
-    df = df.replace(['TIMEOUT', 'inf', '-inf'], np.nan)
+    # Preserve categorical TIMEOUT status for heatmap markers and coverage checks.
+    df = df.replace(['inf', '-inf'], np.nan)
     for col in ['num_vars', 'num_clauses', 'num_aux_vars', 'encoding_time', 'solving_time', 'total_time']:
         df[col] = pd.to_numeric(df[col], errors='coerce')
     df = df.replace([np.inf, -np.inf], np.nan)
+    if 'status' in df:
+        # Keep formula sizes for timeout cells, but never plot their cutoff as runtime.
+        df.loc[df['status'] != 'SAT', ['encoding_time', 'solving_time', 'total_time']] = np.nan
     return df
 
 def _resolve_save_dirs(save_dir=None, save_dirs=None):
@@ -101,9 +120,19 @@ def _save_figure(fig, filename, save_dir=None, save_dirs=None):
     for extension in ('png', 'pdf'):
         name = f'{filename}.{extension}'
         source = os.path.join(first, name)
-        fig.savefig(source, bbox_inches='tight')
-        for directory in unique_dirs[1:]:
-            shutil.copyfile(source, os.path.join(directory, name))
+        # Write a new file before replacement; readers never see a truncated image.
+        for directory in unique_dirs:
+            descriptor, temporary = tempfile.mkstemp(suffix=f'.{extension}', dir=directory)
+            os.close(descriptor)
+            try:
+                if directory == first:
+                    fig.savefig(temporary, bbox_inches='tight')
+                else:
+                    shutil.copyfile(source, temporary)
+                os.replace(temporary, os.path.join(directory, name))
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
 
 def plot_solving_time_comparison(df, save_dir=None, save_dirs=None):
     fig = plt.figure(figsize=(12, 6))
@@ -126,20 +155,21 @@ def plot_solving_time_comparison(df, save_dir=None, save_dirs=None):
     plt.yscale('log')
     
     plt.xticks(n_categories, [str(int(n)) for n in n_categories])
+    plt.gca().xaxis.set_minor_formatter(NullFormatter())
     
     plt.xlabel('Board Size (N) [Log Scale]')
     plt.ylabel('Solving Time (s) [Log Scale]')
     plt.title('Solving Time Comparison Across Approaches (Log-Log)')
     
     plt.grid(True, which="both", ls="--", alpha=0.5)
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+    compact_legend(plt.gca())
     plt.tight_layout()
     _save_figure(fig, "solving_time_comparison", save_dir=save_dir, save_dirs=save_dirs)
     plt.close(fig)
 
 def plot_encoding_time(df, save_dir=None, save_dirs=None):
     fig = plt.figure(figsize=(10, 6))
-    target_n = [10, 20, 30, 40]
+    target_n = [10, 20, 30, 40] if 10 in set(df['n']) else [20, 50, 100]
     sub_df = df[df['n'].isin(target_n) & ~df['encoder_name'].str.contains('ILP|CP')].dropna(subset=['encoding_time'])
     if sub_df.empty:
         plt.close(fig)
@@ -152,7 +182,7 @@ def plot_encoding_time(df, save_dir=None, save_dirs=None):
     plt.ylabel('Encoding Time (s)')
     plt.title('Encoding Time Overhead by SAT Encoder')
     
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Method')
+    compact_legend(plt.gca())
     plt.tight_layout()
     _save_figure(fig, "encoding_time_comparison", save_dir=save_dir, save_dirs=save_dirs)
     plt.close(fig)
@@ -168,12 +198,13 @@ def plot_variables_clauses(df, save_dir=None, save_dirs=None):
         data = sat_df[sat_df['encoder_name'] == encoder].sort_values('n')
         c = COLORS.get(encoder, '#333')
         ax1.plot(data['n'], data['num_clauses'], marker='s', linestyle='-', color=c, 
-                 linewidth=2.0, markersize=6, label=f'{encoder} (Clauses)')
+                 linewidth=2.0, markersize=6, label=f'{LABELS.get(encoder, encoder)} (Clauses)')
         
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xticks(n_categories)
     ax1.set_xticklabels([str(int(n)) for n in n_categories])
+    ax1.xaxis.set_minor_formatter(NullFormatter())
     
     ax1.set_xlabel('Board Size (N) [Log Scale]')
     ax1.set_ylabel('Number of Clauses (Solid Lines)', color='#2c3e50', fontweight='bold')
@@ -184,9 +215,10 @@ def plot_variables_clauses(df, save_dir=None, save_dirs=None):
         data = sat_df[sat_df['encoder_name'] == encoder].sort_values('n')
         c = COLORS.get(encoder, '#333')
         ax2.plot(data['n'], data['num_vars'], marker='o', linestyle=':', color=c, 
-                 linewidth=2.0, markersize=6, alpha=0.8, label=f'{encoder} (Vars)')
+                 linewidth=2.0, markersize=6, alpha=0.8, label=f'{LABELS.get(encoder, encoder)} (Vars)')
         
     ax2.set_yscale('log')
+    ax2.set_ylabel('Total Variables (Dotted Lines)', color='#2c3e50', fontweight='bold')
     ax2.grid(False) 
     
     plt.title('Formula Complexity: Variables vs Clauses Growth (Log-Log)')
@@ -225,7 +257,7 @@ def plot_sat_vs_exact(df, save_dir=None, save_dirs=None):
         plt.xlabel('Board Size (N)')
         plt.ylabel('Total Time (s) [Log Scale]')
         plt.title('Benchmark: Best SAT vs Exact Methods')
-        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Solver Engine')
+        compact_legend(plt.gca())
         plt.tight_layout()
         _save_figure(fig, "sat_vs_exact", save_dir=save_dir, save_dirs=save_dirs)
     plt.close(fig)
@@ -257,12 +289,15 @@ def plot_scalability_heatmap(df, save_dir=None, save_dirs=None):
     }
     for i, method in enumerate(pivot_df.index):
         for j, n in enumerate(pivot_df.columns):
-            if (method, n) in license_cases:
+            timeout = ('status' in df and any((row.encoder_name, row.n) == (method, n)
+                                             and row.status == 'TIMEOUT' for row in df.itertuples()))
+            if (method, n) in license_cases or timeout:
                 ax.add_patch(Rectangle((j, i), 1, 1, facecolor='#C9C9C9',
                                        edgecolor='gray', linewidth=0.5))
-                ax.text(j + 0.5, i + 0.5, 'L', ha='center', va='center',
+                ax.text(j + 0.5, i + 0.5, 'T' if timeout else 'L', ha='center', va='center',
                         color='#333333', fontsize=9)
     ax.set_xlabel('Board Size (N)')
+    ax.set_yticklabels([LABELS.get(method, method) for method in pivot_df.index], rotation=0)
     ax.set_ylabel('Solver / Encoder')
     ax.set_title('Scalability Heatmap: Performance Matrix across N')
     fig.tight_layout()
@@ -274,6 +309,10 @@ def plot_cactus(df, save_dir=None, save_dirs=None):
     fig = plt.figure(figsize=(12, 6))
     encoders = df['encoder_name'].unique()
     max_solved = 0
+    if 'status' in df:
+        expected_sizes = set(df['n'])
+        if any(set(group['n']) != expected_sizes for _, group in df.groupby('encoder_name')):
+            raise ValueError('Cactus comparison requires the same attempted sizes for every method')
     
     for i, encoder in enumerate(encoders):
         data = df[(df['encoder_name'] == encoder) & (df['satisfiable'] == True)].dropna(subset=['total_time'])
@@ -297,11 +336,11 @@ def plot_cactus(df, save_dir=None, save_dirs=None):
     plt.yscale('log')
     if max_solved > 0:
         plt.xticks(np.arange(1, max_solved + 1))
-    plt.xlabel('Number of Solved Instances (Sorted by Speed)', fontweight='bold')
-    plt.ylabel('Runtime per Case (s) [Log Scale]', fontweight='bold')
+    plt.xlabel('Number of Solved Board Sizes (Sorted by Speed)', fontweight='bold')
+    plt.ylabel('Median Runtime per Size (s) [Log Scale]' if 'status' in df else 'Runtime per Case (s) [Log Scale]', fontweight='bold')
     plt.title('Cactus Plot: Runtime vs Solved Instances', fontweight='bold')
     plt.grid(True, which="both", ls="--", alpha=0.5)
-    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+    compact_legend(plt.gca())
     plt.tight_layout()
     _save_figure(fig, "cactus_plot", save_dir=save_dir, save_dirs=save_dirs)
     plt.close(fig)
@@ -310,7 +349,7 @@ def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
     setup_aesthetics()
     resolved_dirs = _resolve_save_dirs(save_dir, save_dirs)
     if csv_path is None:
-        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmark_results.csv')
+        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmarks', 'comparison.csv')
     df = load_results(csv_path)
     plot_solving_time_comparison(df, save_dirs=resolved_dirs)
     plot_encoding_time(df, save_dirs=resolved_dirs)
@@ -328,7 +367,8 @@ def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
         'source_csv_sha256': digest(csv_path),
         'source_rows': len(df),
         'plots': {},
-        'note': 'Historical aggregate measurements; absent cases are not timeouts.'
+        'note': ('Common-size medians; one source session per cell; timeout cells have no completion runtime.'
+                 if 'status' in df else 'Historical aggregate measurements; absent cases are not timeouts.')
     }
     for name in names:
         manifest['plots'][name] = {}
@@ -343,9 +383,10 @@ def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
         with open(os.path.join(directory, 'figures_manifest.json'), 'w', encoding='utf-8') as stream:
             json.dump(manifest, stream, indent=2)
             stream.write('\n')
-    print(f"Generated {len(names)} figures from {len(df)} archived rows.")
+    print(f"Generated {len(names)} figures from {len(df)} source rows.")
     return manifest
 
 if __name__ == '__main__':
-    csv_file = os.path.join(SCRIPT_DIR, 'results', 'benchmark_results.csv')
-    generate_all_plots(csv_file)
+    parser = argparse.ArgumentParser(description='Regenerate the established figure layouts from one explicit dataset')
+    parser.add_argument('--csv', default=os.path.join(SCRIPT_DIR, 'results', 'benchmarks', 'comparison.csv'))
+    generate_all_plots(parser.parse_args().csv)
