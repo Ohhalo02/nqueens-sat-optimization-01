@@ -1,32 +1,32 @@
 {
-  "source_csv": "nqueens_sat/results/benchmark_results.csv",
-  "source_csv_sha256": "e9ab9a287278c2762588cf823c6ed7c21d3662b1137ae577d92a2f40ed986e06",
-  "source_rows": 116,
+  "source_csv": "nqueens_sat/results/benchmarks/comparison.csv",
+  "source_csv_sha256": "df574e652a647a0dcc508cf1de99c0ebb9fe1857697dfa15672e099dd3045c6c",
+  "source_rows": 50,
   "plots": {
     "solving_time_comparison": {
-      "png": "0e3bf3ebb47524ae98b10dd0ad989944d9a805aa0cdce567f64e8d96e7340fb8",
-      "pdf": "2d3114f4d7d44020b2e3e1246847e18511711f543be6f340f4d0a4e13ae6a67e"
+      "png": "a7faac738d893756a8ebb8dbf2e18445d4ed98adbb6ae00516621c0ce9dbd1c3",
+      "pdf": "3a0caec08c7d50ed5e863a98cb0f11808d9f9824281926001b938c56f5ec544c"
     },
     "encoding_time_comparison": {
-      "png": "08d93025852096f11ec4d3e51b8603cb70bf389b4f61a9e1cbe3bbdd17e80a8d",
-      "pdf": "cd7601d21bad1ec024d0755ed242554cea495a92fda713a0347b711b972df4e7"
+      "png": "94be3ee4ca02f277836d6964d9278c3195709434ae07f0e1c810276f33cb22d0",
+      "pdf": "3f31ed4b649d89eb1068f06fe0a79a8b6fa4ea52c15f0f95473ab41c50735535"
     },
     "variables_clauses": {
-      "png": "c5083d3d2be9f127f750c4a3d426c364858301407a56b569baa09900c15766bb",
-      "pdf": "5e6d525884c07896b6970584392c87afd235535f300d401f44974c77dae34875"
+      "png": "af0645eeed4a924b752004f528ba6acd765e68f1e6bf2617d007046848119e22",
+      "pdf": "54fa3359d3e18d41d9efcafd18cb1c10a52fc1b6eded4e1b4480def1abf4b7db"
     },
     "sat_vs_exact": {
-      "png": "d737075d14203bdd5360e911c98e5f07ef8639bae88f63964973a0a6aa73af04",
-      "pdf": "3182a103f07361ea27fb724edcb9fe8c1bb0dfa6d6b367e6058b666c597c95eb"
+      "png": "c923985ac206f5bbe5fcf673373c500e5f9809aaf527fe88e136c257d069e413",
+      "pdf": "57f1744d228f643be5fef20e060fc404e2a5ec3528a0b539a67e92440922e76b"
     },
     "scalability_heatmap": {
-      "png": "e43c828db9804f9c1e549878980c83d3f932adc4d1100fcd017360767482b1af",
-      "pdf": "48edf21d696ad48c938ce00321c59dded6f6f526136978124765aa4e5843fdbc"
+      "png": "547fb69154829926e38fea879c5004daccbb6c7687eef63fbee435274dde92cf",
+      "pdf": "9a2d9d374fa02c9c3f504a57a09d473b5ef5636038d4204da5c47428a62c6b72"
     },
     "cactus_plot": {
-      "png": "7fc9f040e9159840a27bb2f27da291c6865c3062f49c2dff380078f34179e943",
-      "pdf": "de68b3ee019734df4759c24df6b91752474ace392eadda49b6ae7e67d5b97a23"
+      "png": "4f3eefcde680181018056d9ef6f93cfc59949afddb2ff006f4e27ba3cff2e4fc",
+      "pdf": "65df49bbf7718b1c13070fd3d9f175156dbd3b6e28d572d841abd1367ea5f2e9"
     }
   },
-  "note": "Historical aggregate measurements; absent cases are not timeouts."
+  "note": "Common-size medians; one source session per cell; timeout cells have no completion runtime."
 }

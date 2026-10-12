@@ -1,0 +1,2 @@
+encoder_name,n,status,n_repeats,n_success,satisfiable,num_vars,num_clauses,num_aux_vars,encoding_time,solving_time,decode_time,total_time,wall_total,conflicts,decisions,propagations,restarts
+ProductEncoder,75,SAT,3,3,True,11841,67782,6216,0.09353630000259727,31.789557899988722,0.000595899997279048,31.84619579993887,31.846809800015762,100285.0,122737.0,29946054.0,4.0

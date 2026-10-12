@@ -1,0 +1,131 @@
+encoder_name,n,dataset,status,n_repeats,n_success,validation_record
+BinaryEncoder,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinaryEncoder,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinaryEncoder,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinaryEncoder,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinaryEncoder,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinaryEncoder,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinomialEncoder,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinomialEncoder,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinomialEncoder,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+BinomialEncoder,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinomialEncoder,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+BinomialEncoder,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,4,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,8,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,10,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,15,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,20,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,25,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,30,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,40,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,50,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,75,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,100,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,150,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-CPLEX,200,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-SAT-ORTools,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-SAT-ORTools,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-SAT-ORTools,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CP-SAT-ORTools,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-SAT-ORTools,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CP-SAT-ORTools,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CommanderEncoder,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CommanderEncoder,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CommanderEncoder,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+CommanderEncoder,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CommanderEncoder,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+CommanderEncoder,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,4,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,8,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,10,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,15,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,20,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,25,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,30,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,40,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,50,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,75,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,100,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,150,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-CPLEX,200,nqueens_sat/results/benchmarks/cplex_standard_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-Gurobi,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,20,nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv,SAT,3,3,placement retained in runs.jsonl; independently revalidated
+ILP-Gurobi,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,50,nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv,SAT,3,3,placement retained in runs.jsonl; independently revalidated
+ILP-Gurobi,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-Gurobi,100,nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv,SAT,3,3,placement retained in runs.jsonl; independently revalidated
+ILP-Gurobi,150,nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv,SAT,3,3,placement retained in runs.jsonl; independently revalidated
+ILP-Gurobi,200,nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv,SAT,3,3,placement retained in runs.jsonl; independently revalidated
+ILP-PuLP-CBC,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,TIMEOUT,3,0,no completed placement (timeout)
+ILP-PuLP-CBC,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-PuLP-CBC,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ILP-PuLP-CBC,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-PuLP-CBC,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ILP-PuLP-CBC,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,TIMEOUT,3,0,no completed placement (timeout)
+ProductEncoder,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ProductEncoder,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+ProductEncoder,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ProductEncoder,75,nqueens_sat/results/benchmarks/product75_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ProductEncoder,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ProductEncoder,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+ProductEncoder,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+SequentialEncoder,4,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,8,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,10,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,15,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,20,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+SequentialEncoder,25,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,30,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,40,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,50,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+SequentialEncoder,75,nqueens_sat/results/benchmark_results.csv,ARCHIVED_SAT,,,not preserved in archive
+SequentialEncoder,100,nqueens_sat/results/benchmarks/common_small_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+SequentialEncoder,150,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,SAT,3,3,SAT placements validated by runner
+SequentialEncoder,200,nqueens_sat/results/benchmarks/large_n_benchmark/summary.csv,TIMEOUT,3,0,no completed placement (timeout)

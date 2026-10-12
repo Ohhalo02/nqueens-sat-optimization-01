@@ -1,0 +1,51 @@
+{
+  "common_sizes": [
+    20,
+    50,
+    100,
+    150,
+    200
+  ],
+  "cells": 50,
+  "repetitions_per_cell": 3,
+  "selection": "one source session per cell; no pooling",
+  "sources": {
+    "common_small_benchmark": {
+      "witnesses_retained": false,
+      "source_sha256": "ee61c48510dd8e318121ae262cffc43eac74f8ce319fbcd65ee2207671310800",
+      "files_sha256": {
+        "metadata.json": "3574591569adc37a1ead6699a8f95d64e849301cfe514edaea1ec82e6b0e70b3",
+        "raw.csv": "36d6e555086d3250ce008893cc56285b459446108ff29be9933a526364fd7ade",
+        "summary.csv": "97786b226dc91de96e4e0d88b9cbe8e20db0396f7e47274522bcb8fa41f6264e"
+      }
+    },
+    "large_n_benchmark": {
+      "witnesses_retained": false,
+      "source_sha256": "ee61c48510dd8e318121ae262cffc43eac74f8ce319fbcd65ee2207671310800",
+      "files_sha256": {
+        "metadata.json": "fe19f979d20eaba5f87712f3855100c6956e2b1fafc666d20e6ad3c619c7cad5",
+        "raw.csv": "44f958e243f501d2aed2827e8aec9601d0d6a9048245dcdcfd803851b580fd2a",
+        "summary.csv": "b59ac2b97733a4d81a02af96b585ed1c558d6ee6e0d61acf2db83401b146c4c3"
+      }
+    },
+    "cplex_standard_benchmark": {
+      "witnesses_retained": false,
+      "source_sha256": "ee61c48510dd8e318121ae262cffc43eac74f8ce319fbcd65ee2207671310800",
+      "files_sha256": {
+        "metadata.json": "dd748b13006d7ec0a6eb50a351c81c199935ac9febe95f60b846fa5defd50375",
+        "raw.csv": "2cbc05ecdb5a5d5f375085d3f77f1e3f45c75d8750f17f12bac49afd3e8882b0",
+        "summary.csv": "399a264e19a274a4f38f8f940411ca427b56f7534d72fd1abe9edb197c2280eb"
+      }
+    },
+    "gurobi_corrected_benchmark": {
+      "witnesses_retained": true,
+      "source_sha256": "8b99008f39577743d9d046d08485b367f23a3dd7baaef4c8dd369f78932cb1c2",
+      "files_sha256": {
+        "metadata.json": "4ec1572b5ee2ca2855f5d00c34646a5712a15f9c7fad454b8778b6a80fad057f",
+        "raw.csv": "f19860f8550396a87f5293958bcc3112cce9726d859d0161f8fb705fbf140680",
+        "runs.jsonl": "6585642010204136cc17fedb36dee73c6acb5f701c7a56ce813cae26d72a1fb6",
+        "summary.csv": "441bdeac41ddecb37e8e9f8bd47b1423ae4af9625c85ce62936811e11d578f7e"
+      }
+    }
+  }
+}

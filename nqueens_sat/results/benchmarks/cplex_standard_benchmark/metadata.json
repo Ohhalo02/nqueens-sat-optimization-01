@@ -1,0 +1,64 @@
+{
+  "run_id": "20261012T112146Z",
+  "created_utc": "2026-10-12T11:21:46.710061+00:00",
+  "source_commit": "a842e5408b124f2ff8de9fc3b1641b4e83d87730",
+  "source_dirty": false,
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable_name": "python.exe",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+  "logical_cpus": 16,
+  "package_versions": {
+    "python-sat": "1.9.dev15",
+    "pulp": "3.3.2",
+    "ortools": "9.15.6755",
+    "gurobipy": "13.0.3",
+    "docplex": "2.32.264",
+    "cplex": "22.2.0.1",
+    "matplotlib": "3.11.2",
+    "seaborn": "0.13.2",
+    "pandas": "3.0.6",
+    "numpy": "2.5.1"
+  },
+  "solver_workers": 1,
+  "selected_solvers": [
+    "ILP-CPLEX",
+    "CP-CPLEX"
+  ],
+  "selected_sizes": [
+    4,
+    8,
+    10,
+    15,
+    20,
+    25,
+    30,
+    40,
+    50,
+    75,
+    100,
+    150,
+    200
+  ],
+  "requested_repeats": 3,
+  "wall_limit_seconds_per_repeat": 120.0,
+  "timing_definition": {
+    "total_time": "model construction + solver invocation",
+    "wall_total": "inside solve(), including solution extraction",
+    "process_wall_time": "parent clock, including worker startup and validation"
+  },
+  "summary_statistic": "median of complete repetitions",
+  "source_code_sha256": "ee61c48510dd8e318121ae262cffc43eac74f8ce319fbcd65ee2207671310800",
+  "source_code_scope": "all nqueens_sat/**/*.py files, sorted by relative path, SHA-256 over UTF-8 path + NUL + bytes + NUL",
+  "source_python_dirty": false,
+  "solution_validation": "Every SAT result is checked for bounds, row/column uniqueness, and diagonal non-attacking constraints before recording.",
+  "ibm_runtime": {
+    "edition": "IBM ILOG CPLEX Optimization Studio 22.2 Standard",
+    "cplex_engine_version": "22.2.0.0",
+    "configuration": "IBM docplex config --upgrade applied to the Standard installation before collection",
+    "binaries": {
+      "cplex/bin/x64_win64/cplex2220.dll": "7ae98eaf3bc4935718cdd702152841f48704187145c47990a060359e2566d0ee",
+      "cpoptimizer/bin/x64_win64/cpoptimizer.exe": "ea2973d87f17cd4d9f3d72fd0440a5d0f37170199426dadb4a833771fb9fc22b"
+    }
+  }
+}
