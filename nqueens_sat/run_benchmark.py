@@ -52,7 +52,7 @@ RAW_FIELDS = ('encoder_name', 'n', 'repeat', 'status', 'satisfiable', 'num_vars'
               'num_clauses', 'num_aux_vars', 'setup_time', 'encoding_time', 'solving_time',
               'decode_time', 'total_time', 'wall_total', 'process_wall_time',
               'conflicts', 'decisions', 'propagations', 'restarts', 'native_status',
-              'error_type')
+              'error_type', 'error_code', 'error_hint', 'stop_cause')
 SUMMARY_FIELDS = ('encoder_name', 'n', 'status', 'n_repeats', 'n_success',
                   'satisfiable', 'num_vars', 'num_clauses', 'num_aux_vars',
                   'setup_time', 'encoding_time', 'solving_time', 'decode_time', 'total_time',

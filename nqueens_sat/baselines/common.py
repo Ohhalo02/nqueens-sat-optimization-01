@@ -24,4 +24,10 @@ def failure_result(name, n, started, exc=None, integer_variables=False):
         "total_time": None,
         "wall_total": time.perf_counter() - started,
         "error_type": type(exc).__name__ if exc is not None else "MissingDependency",
+        "error_code": getattr(exc, 'errno', None),
+        "error_hint": (
+            'Check network access to the license server.' if 'resolve' in message
+            else 'Check the installed solver edition and license.' if status == 'LICENSE_LIMIT'
+            else 'Check solver installation and writable working/temp directories.'
+        ),
     }

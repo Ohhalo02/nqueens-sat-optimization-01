@@ -28,10 +28,16 @@ class CplexCPSolver:
             if sol is not None and sol.is_solution():
                 solution = [(i, sol[queens[i]]) for i in range(n)]
             solve_status = str(sol.get_solve_status()).lower() if sol is not None else 'unknown'
-            status = 'SAT' if solution is not None else 'UNSAT' if solve_status == 'infeasible' else 'TIMEOUT' if 'time limit' in solve_status else 'UNKNOWN'
+            stop_cause = str(sol.get_stop_cause()) if sol is not None else None
+            # TimeLimit is the only search limit configured by this wrapper.
+            timed_out = stop_cause == 'SearchStoppedByLimit'
+            status = ('SAT' if solution is not None else
+                      'UNSAT' if solve_status == 'infeasible' else
+                      'TIMEOUT' if timed_out else 'UNKNOWN')
             decode_time = time.perf_counter() - decode_start
             return {
                 'status': status, 'native_status': solve_status,
+                'stop_cause': stop_cause,
                 'satisfiable': True if status == 'SAT' else False if status == 'UNSAT' else None,
                 'solution': solution, 'num_vars': n, 'num_clauses': 3, 'num_aux_vars': 0,
                 'encoding_time': encoding_time, 'solving_time': solving_time, 'decode_time': decode_time,

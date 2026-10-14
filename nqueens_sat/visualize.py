@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.colors as mcolors
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import NullFormatter
+from artifacts import TEXT_HASH_POLICY, text_sha256
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SAVE_DIRS = [
@@ -26,11 +27,11 @@ def setup_aesthetics():
         'font.family': 'sans-serif',
         'axes.titlesize': 15,
         'axes.titleweight': 'bold',
-        'axes.labelsize': 12,
+        'axes.labelsize': 14,
         'axes.labelweight': 'bold',
-        'xtick.labelsize': 11,
-        'ytick.labelsize': 11,
-        'legend.fontsize': 11,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+        'legend.fontsize': 12,
         'legend.title_fontsize': 12,
         'figure.dpi': 300,
         'pdf.fonttype': 42,
@@ -89,15 +90,14 @@ def _resolve_save_dirs(save_dir=None, save_dirs=None):
     dirs = save_dirs if save_dirs is not None else save_dir
     if dirs is None:
         target_list = list(DEFAULT_SAVE_DIRS)
-    elif isinstance(dirs, str):
+    elif isinstance(dirs, (str, os.PathLike)):
         target_list = [dirs]
     elif isinstance(dirs, (list, tuple, set)):
         target_list = list(dirs)
     else:
-        target_list = list(DEFAULT_SAVE_DIRS)
-    
-    report_fig_dir = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'report', 'figures'))
-    norm_report = os.path.normpath(report_fig_dir)
+        raise TypeError('Output directories must be paths or a sequence of paths')
+    if not target_list:
+        raise ValueError('At least one output directory is required')
     
     unique_dirs = []
     seen = set()
@@ -107,9 +107,6 @@ def _resolve_save_dirs(save_dir=None, save_dirs=None):
             seen.add(norm)
             unique_dirs.append(norm)
             
-    if norm_report not in seen:
-        unique_dirs.append(norm_report)
-        
     return unique_dirs
 
 def _save_figure(fig, filename, save_dir=None, save_dirs=None):
@@ -161,7 +158,8 @@ def plot_solving_time_comparison(df, save_dir=None, save_dirs=None):
     plt.ylabel('Solving Time (s) [Log Scale]')
     plt.title('Solving Time Comparison Across Approaches (Log-Log)')
     
-    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.grid(True, which="major", ls="--", alpha=0.35)
+    plt.grid(False, which="minor")
     compact_legend(plt.gca())
     plt.tight_layout()
     _save_figure(fig, "solving_time_comparison", save_dir=save_dir, save_dirs=save_dirs)
@@ -339,7 +337,8 @@ def plot_cactus(df, save_dir=None, save_dirs=None):
     plt.xlabel('Number of Solved Board Sizes (Sorted by Speed)', fontweight='bold')
     plt.ylabel('Median Runtime per Size (s) [Log Scale]' if 'status' in df else 'Runtime per Case (s) [Log Scale]', fontweight='bold')
     plt.title('Cactus Plot: Runtime vs Solved Instances', fontweight='bold')
-    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.grid(True, which="major", ls="--", alpha=0.35)
+    plt.grid(False, which="minor")
     compact_legend(plt.gca())
     plt.tight_layout()
     _save_figure(fig, "cactus_plot", save_dir=save_dir, save_dirs=save_dirs)
@@ -347,9 +346,12 @@ def plot_cactus(df, save_dir=None, save_dirs=None):
 
 def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
     setup_aesthetics()
-    resolved_dirs = _resolve_save_dirs(save_dir, save_dirs)
+    principal = Path(SCRIPT_DIR) / 'results' / 'benchmarks' / 'comparison.csv'
     if csv_path is None:
-        csv_path = os.path.join(SCRIPT_DIR, 'results', 'benchmarks', 'comparison.csv')
+        csv_path = principal
+    if Path(csv_path).resolve() != principal.resolve() and save_dir is None and save_dirs is None:
+        raise ValueError('Use --output-dir for alternate datasets to protect manuscript figures')
+    resolved_dirs = _resolve_save_dirs(save_dir, save_dirs)
     df = load_results(csv_path)
     plot_solving_time_comparison(df, save_dirs=resolved_dirs)
     plot_encoding_time(df, save_dirs=resolved_dirs)
@@ -364,7 +366,8 @@ def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()
     manifest = {
         'source_csv': os.path.relpath(csv_path, os.path.dirname(SCRIPT_DIR)).replace('\\', '/'),
-        'source_csv_sha256': digest(csv_path),
+        'source_csv_sha256': text_sha256(csv_path),
+        'source_hash_policy': TEXT_HASH_POLICY,
         'source_rows': len(df),
         'plots': {},
         'note': ('Common-size medians; one source session per cell; timeout cells have no completion runtime.'
@@ -389,4 +392,7 @@ def generate_all_plots(csv_path=None, save_dir=None, save_dirs=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Regenerate the established figure layouts from one explicit dataset')
     parser.add_argument('--csv', default=os.path.join(SCRIPT_DIR, 'results', 'benchmarks', 'comparison.csv'))
-    generate_all_plots(parser.parse_args().csv)
+    parser.add_argument('--output-dir', type=Path,
+                        help='Write only here; required when plotting an alternate CSV')
+    args = parser.parse_args()
+    generate_all_plots(args.csv, save_dir=args.output_dir)

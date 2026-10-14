@@ -1,11 +1,13 @@
 # N-Queens SAT solvers and exact baselines
 
-Five AMO encodings use Glucose4. Exact baselines are CBC, Gurobi, CPLEX MIP, OR-Tools CP-SAT, and IBM CP Optimizer. See the [project README](../README.md) for installation, licenses, timing, and provenance. This revision is local and has not been pushed.
+Five AMO encodings use Glucose4. Exact baselines are CBC, Gurobi, CPLEX MIP, OR-Tools CP-SAT, and IBM CP Optimizer. See the [project README](../README.md) for installation, licenses, timing, and provenance.
 
 From this directory:
 
 ```powershell
 python test_validation.py
+python test_regressions.py -v
+python test_validation.py --commercial
 python run_benchmark.py --solvers ILP-CPLEX CP-CPLEX --sizes 20 50 100 150 200 --repeats 3 --wall-limit 120
 python prepare_comparison.py
 python prepare_comparison.py --check
@@ -16,4 +18,4 @@ The runner creates raw repetitions, medians, metadata, and JSONL witnesses in a 
 
 The principal [comparison](results/benchmarks/comparison.csv) selects one source session per cell for ten methods at five common sizes, including corrected Gurobi results. Earlier Gurobi records remain in their original directories. The [manifest](results/benchmarks/comparison_manifest.json) records provenance and hashes; the [coverage index](results/benchmarks/coverage.csv) covers all 130 method-size cells. Repetitions are not pooled across sessions.
 
-`prepare_comparison.py` verifies medians, counts, and witnesses and generates manuscript tables. `visualize.py` writes six figures to both `results/figures/` and `../report/figures/`, preserving the established style and checking identical hashes. Three main figures appear in the shorter manuscript; the others remain available in the package.
+`prepare_comparison.py` verifies medians, counts, witnesses, and normalized text hashes and generates manuscript tables. `visualize.py` writes six figures to both `results/figures/` and `../report/figures/` for the principal dataset. Alternate CSVs require `--output-dir` and write only there. Three figures appear in the manuscript; the others remain available in the package. After compiling the report, `python package_report.py` rebuilds the Overleaf ZIP; `python package_report.py --check` checks it against the current report.

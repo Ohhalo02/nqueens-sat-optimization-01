@@ -1,5 +1,12 @@
-from pulp import *
+"""Binary placement model solved with the benchmark's PuLP/CBC version."""
+
 import time
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from pulp import LpMaximize, LpProblem, LpStatus, LpVariable, PULP_CBC_CMD, lpSum, value
+
+from .common import failure_result
 
 class ILPSolver:
     def __init__(self):
@@ -7,6 +14,12 @@ class ILPSolver:
     
     def solve(self, n, time_limit=300):
         t_start = time.perf_counter()
+        try:
+            return self._solve(n, time_limit, t_start)
+        except Exception as exc:
+            return failure_result(self.name, n, t_start, exc)
+
+    def _solve(self, n, time_limit, t_start):
         
         # Create problem
         prob = LpProblem('NQueens', LpMaximize)
@@ -40,8 +53,12 @@ class ILPSolver:
         encoding_time = time.perf_counter() - t_start
         
         t_solve = time.perf_counter()
-        # Solve with CBC, suppress output
-        prob.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1))
+        # PuLP 3.3 splits CBC arguments on whitespace. Relative filenames avoid
+        # spaces in the absolute working/temp path without changing process cwd.
+        with TemporaryDirectory(prefix='.cbc-', dir=Path.cwd()) as directory:
+            solver = PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1)
+            solver.tmpDir = Path(directory).name
+            prob.solve(solver)
         solving_time = time.perf_counter() - t_solve
         
         decode_start = time.perf_counter()

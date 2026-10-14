@@ -5,7 +5,6 @@ Run this before visualize.py; --check verifies generated CSV/table consistency.
 """
 import argparse
 import csv
-import hashlib
 import io
 import json
 import statistics
@@ -14,6 +13,7 @@ from pathlib import Path
 from run_benchmark import METRICS, SOLVERS
 from test_validation import amo_counts
 from utils import validate_solution
+from artifacts import TEXT_HASH_POLICY, text_sha256
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -71,6 +71,7 @@ def build(check=False):
     sessions = ('common_small_benchmark', 'large_n_benchmark',
                 'cplex_standard_benchmark', 'gurobi_corrected_benchmark')
     loaded = {s: check_session(DATA / s) for s in sessions}
+    raw_sessions = {s: read_csv(DATA / s / 'raw.csv') for s in sessions}
     assert loaded['gurobi_corrected_benchmark'][2], 'Corrected Gurobi runs must retain witnesses'
     rows = []
     for name in NAMES:
@@ -99,14 +100,15 @@ def build(check=False):
             rows.append(row)
     fields = list(dict.fromkeys(key for row in rows for key in row))
     buffer = io.StringIO(newline='')
-    writer = csv.DictWriter(buffer, fieldnames=fields)
+    writer = csv.DictWriter(buffer, fieldnames=fields, lineterminator='\n')
     writer.writeheader()
     writer.writerows(rows)
     table = [r'\begin{tabular}{@{}lrrrrr@{}}', r'\toprule',
              r'Method & $N=20$ & $N=50$ & $N=100$ & $N=150$ & $N=200$ \\ \midrule']
     for name, label in zip(NAMES, LABELS):
         cells = [r for r in rows if r['encoder_name'] == name]
-        times = [f"{float(r['total_time']):.3f}" if r['status'] == 'SAT' else 'Timeout' for r in cells]
+        times = [f"{float(r['total_time']):.3f}" if r['status'] == 'SAT'
+                 else 'Timeout' if r['status'] == 'TIMEOUT' else r['status'] for r in cells]
         table.append(label + ' & ' + ' & '.join(times) + r' \\')
     table.extend((r'\bottomrule', r'\end{tabular}', ''))
     counts = [r'\begin{tabular}{@{}lrrrr@{}}', r'\toprule',
@@ -122,36 +124,70 @@ def build(check=False):
     outputs = {DATA / 'comparison.csv': buffer.getvalue(),
                ROOT / 'report' / 'tables' / 'common_runtime.tex': '\n'.join(table),
                ROOT / 'report' / 'tables' / 'formula_sizes.tex': '\n'.join(counts)}
+    spread = []
+    for row in rows:
+        runs = [r for r in raw_sessions[row['source_dataset']]
+                if (r['encoder_name'], r['n']) == (row['encoder_name'], row['n'])]
+        item = {key: row[key] for key in ('encoder_name', 'n', 'status', 'source_dataset')}
+        for metric in ('total_time', 'process_wall_time'):
+            values = [float(r[metric]) for r in runs] if row['status'] == 'SAT' else []
+            for label, operation in (('min', min), ('median', statistics.median), ('max', max)):
+                item[f'{metric}_{label}'] = operation(values) if values else ''
+        spread.append(item)
+    spread_buffer = io.StringIO(newline='')
+    spread_writer = csv.DictWriter(spread_buffer, fieldnames=list(spread[0]), lineterminator='\n')
+    spread_writer.writeheader()
+    spread_writer.writerows(spread)
+    outputs[DATA / 'runtime_spread.csv'] = spread_buffer.getvalue()
+    variation = [r'\begin{tabular}{@{}llrrrr@{}}', r'\toprule',
+                 r'Method & $N$ & Min & Median & Max & Process median \\ \midrule']
+    for name, n in (('ILP-Gurobi', 20), ('CP-CPLEX', 100), ('CP-CPLEX', 200), ('CommanderEncoder', 200)):
+        row = next(r for r in spread if r['encoder_name'] == name and int(r['n']) == n)
+        values = [f"{row[k]:.4f}" for k in ('total_time_min', 'total_time_median',
+                                           'total_time_max', 'process_wall_time_median')]
+        variation.append(LABELS[NAMES.index(name)] + f' & {n} & ' + ' & '.join(values) + r' \\')
+    variation.extend((r'\bottomrule', r'\end{tabular}', ''))
+    outputs[ROOT / 'report' / 'tables' / 'runtime_variation.tex'] = '\n'.join(variation)
+    search = [r'\begin{tabular}{@{}llrrr@{}}', r'\toprule',
+              r'Encoding & $N$ & Total time (s) & Conflicts & Propagations \\ \midrule']
+    for name, n in (('BinaryEncoder', 100), ('SequentialEncoder', 100), ('ProductEncoder', 100), ('ProductEncoder', 150)):
+        row = next(r for r in rows if r['encoder_name'] == name and int(r['n']) == n)
+        search.append(LABELS[NAMES.index(name)] + f" & {n} & {float(row['total_time']):.3f}"
+                      + f" & {int(float(row['conflicts'])):,} & {int(float(row['propagations'])):,}" + r' \\')
+    search.extend((r'\bottomrule', r'\end{tabular}', ''))
+    outputs[ROOT / 'report' / 'tables' / 'search_statistics.tex'] = '\n'.join(search)
     coverage = read_csv(DATA / 'coverage.csv')
     for cell in coverage:
         if cell['encoder_name'] == 'ILP-Gurobi' and int(cell['n']) in SIZES:
             cell['dataset'] = 'nqueens_sat/results/benchmarks/gurobi_corrected_benchmark/summary.csv'
             cell['validation_record'] = 'placement retained in runs.jsonl; independently revalidated'
     coverage_buffer = io.StringIO(newline='')
-    coverage_writer = csv.DictWriter(coverage_buffer, fieldnames=list(coverage[0]))
+    coverage_writer = csv.DictWriter(coverage_buffer, fieldnames=list(coverage[0]), lineterminator='\n')
     coverage_writer.writeheader()
     coverage_writer.writerows(coverage)
     outputs[DATA / 'coverage.csv'] = coverage_buffer.getvalue()
     for path, contents in outputs.items():
         if check:
-            assert path.read_bytes().decode('utf-8') == contents, f'Stale generated output: {path}'
+            assert path.read_text(encoding='utf-8') == contents, f'Stale generated output: {path}'
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(contents, encoding='utf-8', newline='')
     if not check:
         manifest = {'common_sizes': SIZES, 'cells': len(rows), 'repetitions_per_cell': 3,
-                    'selection': 'one source session per cell; no pooling', 'sources': {}}
+                    'selection': 'one source session per cell; no pooling',
+                    'files_hash_policy': TEXT_HASH_POLICY, 'sources': {}}
         for session, (_, metadata, retained) in loaded.items():
             manifest['sources'][session] = {'witnesses_retained': retained,
                 'source_sha256': metadata.get('source_python_sha256', metadata.get('source_code_sha256')),
-                'files_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                'files_sha256': {p.name: text_sha256(p)
                                  for p in (DATA / session).iterdir() if p.is_file()}}
-        (DATA / 'comparison_manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+        (DATA / 'comparison_manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     else:
         manifest = json.loads((DATA / 'comparison_manifest.json').read_text(encoding='utf-8'))
+        assert manifest['files_hash_policy'] == TEXT_HASH_POLICY
         for session, description in manifest['sources'].items():
             for filename, expected_hash in description['files_sha256'].items():
-                assert hashlib.sha256((DATA / session / filename).read_bytes()).hexdigest() == expected_hash
+                assert text_sha256(DATA / session / filename) == expected_hash, (session, filename)
     print(f'Checked {len(rows)} cells; generated comparison CSV and manuscript table' if not check else 'Comparison CSV and manuscript table match validated raw repetitions')
 
 

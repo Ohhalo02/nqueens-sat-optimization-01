@@ -1,0 +1,4 @@
+# Install only when the corresponding native runtimes/licenses are available.
+gurobipy==13.0.3
+docplex==2.32.264
+cplex==22.2.0.1

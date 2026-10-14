@@ -38,3 +38,4 @@ venv/
 
 /audit/
 /pre-audit-cleanup-*.bundle
+/.cbc-*/

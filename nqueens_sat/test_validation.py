@@ -1,4 +1,5 @@
 """Public checks of projected AMO semantics, input UP, counts, and placements."""
+import argparse
 import itertools
 import math
 import sys
@@ -13,6 +14,9 @@ from encoders.sequential import SequentialEncoder
 from encoders.product import ProductEncoder
 from baselines.ilp_solver import ILPSolver
 from baselines.cp_solver import CPSolver
+from baselines.gurobi_solver import GurobiSolver
+from baselines.cplex_mip_solver import CplexMIPSolver
+from baselines.cplex_cp_solver import CplexCPSolver
 from utils import validate_solution
 from pysat.solvers import Glucose4
 
@@ -104,19 +108,29 @@ def check_boards():
         print(f'{solver_class.__name__}: board counts and all placements through N=8 passed')
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--commercial', action='store_true',
+                        help='Also check Gurobi, CPLEX MIP, and CP Optimizer (licenses required)')
+    args = parser.parse_args(argv)
     check_amo()
     check_boards()
-    for solver_class in SAT + BASELINES:
+    commercial = (GurobiSolver, CplexMIPSolver, CplexCPSolver) if args.commercial else ()
+    skipped = []
+    for solver_class in SAT + BASELINES + commercial:
         for n in (1, 2, 3, 4, 8):
             result = solver_class().solve(n)
+            if solver_class in commercial and result['status'] in ('MISSING_DEPENDENCY', 'LICENSE_LIMIT'):
+                skipped.append(solver_class.__name__)
+                print(f'SKIP {solver_class.__name__}: {result["status"]}')
+                break
             expected = n not in (2, 3)
             assert result['status'] == ('SAT' if expected else 'UNSAT'), (solver_class.__name__, n, result)
             assert result['satisfiable'] is expected, (solver_class.__name__, n, result)
             if expected:
                 assert validate_solution(result['solution'], n), (solver_class.__name__, n, result)
             print(f'{solver_class.__name__} N={n}: {result["status"]}')
-    print('All small-board validation assertions passed.')
+    print(f'All executed small-board validation assertions passed; skipped backends: {skipped}.')
 
 
 if __name__ == '__main__':
