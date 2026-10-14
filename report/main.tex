@@ -71,7 +71,7 @@ Empty boards with $N=2$ or $N=3$ have no solution; the present task seeks one pl
 
 SAT asks whether a Boolean formula has a satisfying assignment. A CNF formula is a conjunction of clauses, each a disjunction of literals. Modern solvers extend DPLL with conflict-driven clause learning (CDCL) \cite{marques1999grasp,marques2009cdcl,moskewicz2001chaff}. Glucose uses literal block distance (LBD), the number of decision levels in a learned clause, to assess learned clauses \cite{audemard2009predicting,audemard2018glucose}. The SAT experiments use Glucose4 through PySAT \cite{ignatiev2018pysat}.
 
-For inputs $X=\{x_1,\dots,x_n\}$, at least one (ALO) is the clause $\bigvee_i x_i$, at most one (AMO) requires $\sum_i x_i\leq1$, and exactly one (EXO) combines ALO and AMO. Established AMO encodings trade auxiliary variables and clause counts against propagation cost \cite{frisch2005sat,prestwich2007cnf}. Sinz introduced sequential counters \cite{sinz2005towards}, Klieber and Kwon proposed commander groups \cite{klieber2007efficient}, and Chen studied product encodings \cite{chen2010new}; no new encoding is proposed here.
+For inputs $X=\{x_1,\dots,x_n\}$, at least one (ALO) is the clause $\bigvee_i x_i$, at most one (AMO) requires $\sum_i x_i\leq1$, and exactly one (EXO) combines ALO and AMO. Established AMO encodings trade auxiliary variables and clause counts against propagation cost \cite{frisch2005sat,prestwich2007cnf}. Sinz introduced sequential counters \cite{sinz2005towards}, Klieber and Kwon proposed commander groups \cite{klieber2007efficient}, and Chen studied product encodings \cite{chen2010new}.
 
 ILP combines linear constraints with integer variables and can use branch-and-bound and cuts \cite{nemhauser1988integer}. The ILP baselines are CBC through PuLP, Gurobi, and CPLEX MIP \cite{mitchell1996lp,gurobi,cplex}. CP uses finite-domain constraints and may exploit specialized filtering for \texttt{AllDifferent}, such as R\'egin's matching method \cite{regin1994filtering,rossi2006handbook}. The CP baselines are OR-Tools CP-SAT and IBM CP Optimizer \cite{ortools,cplex}; their internal propagation cannot be inferred from the model alone.
 
@@ -94,6 +94,17 @@ The chosen encoding supplies row AMO clauses; columns use the same construction.
 
 \subsection{Diagonal constraints}
 Cells share a main diagonal when $d=i-j$ is equal, with $d\in\{-(N-1),\dots,N-1\}$. They share an anti-diagonal when $s=i+j$ is equal, with $s\in\{2,\dots,2N\}$. Each diagonal needs AMO but may be empty, so it needs no ALO clause.
+
+For example, at $N=4$ the row-wise column sequence $(2,4,1,3)$ gives the placement
+\[
+X=\begin{pmatrix}
+0&1&0&0\\
+0&0&0&1\\
+1&0&0&0\\
+0&0&1&0
+\end{pmatrix}.
+\]
+Every row and column sums to one, and every diagonal sums to at most one. The implementation numbers a cell by $v(i,j)=N(i-1)+j$ for the one-based indices used here; the true board literals in this example are $2,8,9,15$. Auxiliary IDs start after $N^2$. Decoding reads only board literals, and validation checks the coordinates independently of the encoding.
 
 \subsection{AMO encoding schemes}
 For $n$ Boolean variables $X=\{x_1,\dots,x_n\}$, AMO permits at most one true input:
@@ -249,6 +260,8 @@ The primary metric is $t_{\mathrm{total}}=t_{\mathrm{encoding}}+t_{\mathrm{solvi
 
 All returned placements were validated before a run was marked SAT. The public validation script checks exhaustive AMO input assignments through $n=8$, input unit propagation and exact AMO counts through $n=64$, and exact board counts through $N=12$. It compares every projected SAT placement through $N=8$ with independent permutation enumeration, obtaining counts $1,0,0,2,10,4,40,92$. The revised runner retains per-run placements in JSONL; all 15 corrected Gurobi witnesses were revalidated from disk. Earlier sessions did not preserve their placements, so those witnesses cannot be checked retrospectively from the CSVs.
 
+Integration checks additionally exercise all ten methods at $N\in\{1,2,3,4,8\}$, including the two infeasible sizes. Commercial checks require their installed runtimes and licenses. These checks and subsequent integration fixes do not replace the recorded benchmark observations.
+
 \subsection{Formula size and SAT performance}
 Table~\ref{tab:sat_sizes} reports generated sizes before preprocessing. The Sequential $N=200$ size is derived from the verified count expressions because the corresponding runs reached the process deadline. Pairwise uses no auxiliary variables but grows cubically in clauses; the other models reduce clause growth at the cost of auxiliary structure.
 
@@ -301,7 +314,30 @@ The cactus plot in Figure~\ref{fig:cactus_plot} sorts each method's successful s
 \label{fig:cactus_plot}
 \end{figure}
 
-\subsection{Interpretation and limits}
+\FloatBarrier
+\subsection{Search behavior, variation, and limits}
+Table~\ref{tab:search_statistics} relates runtime to the search counters retained in the raw logs. At $N=100$, Sequential has fewer clauses than Binary but records substantially more conflicts and propagations. Product has a larger formula at $N=150$ than at $N=100$, yet conflicts fall from 100,361 to 1,883 and propagations from 38,098,586 to 800,065. The accompanying runtime decrease illustrates non-monotone search effort across these board sizes; formula size alone does not predict runtime. These counters describe the observed runs, rather than identify the causal effect of a particular heuristic.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Selected SAT search counters and median construction plus invocation times from the recorded sessions}
+\label{tab:search_statistics}
+\input{tables/search_statistics}
+\end{table}
+
+For all 24 SAT method-size cells that completed three repetitions, the four recorded search counters (conflicts, decisions, propagations, and restarts) are identical across repetitions. These repeats therefore describe timing variation for the same observed search statistics, rather than three independent instances or a seeded search study.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Selected runtime ranges over three repetitions (s). Min, median, and max refer to construction plus invocation; the final column includes the full child-process lifecycle}
+\label{tab:runtime_variation}
+\input{tables/runtime_variation}
+\end{table}
+
+Table~\ref{tab:runtime_variation} shows why the metric boundary matters. At $N=200$, CP Optimizer and Commander have construction-plus-invocation medians of 0.064 and 2.252~s, but full-process medians of 2.485 and 4.797~s. Their ordering is unchanged, while their relative difference is much smaller when startup and shutdown are included. At $N=20$, the three Gurobi totals range from 0.0084 to 0.0397~s; the 0.0098-s median alone hides this variation. The repository provides corresponding ranges for all common-size cells.
+
 All five isolated AMO encodings are GAC on their original inputs, as established by the clauses and public tests. This property does not make the complete board formula propagation complete. Binary and ternary clauses expose implications cheaply, but propagation paths, decisions, and learned clauses still depend on the encoding and solver state \cite{marques2009cdcl,audemard2009predicting}. Short original clauses do not guarantee short learned clauses, and a long implication chain need not span many decision levels. The run records include conflicts, decisions, propagations, and restarts, but no LBD distributions; they cannot establish which CDCL mechanism caused a runtime difference.
 
 The experiment uses one machine, engine-default search settings apart from the worker count and deadline, and separate measurement sessions. It has no seeded search ablation, random method-order blocking, independent machines, or significance test. Observed min--max ranges in the raw data are descriptive, not confidence intervals. Empty-board N-Queens admits direct polynomial constructions; five feasible sizes up to $N=200$ assess these implementations but do not establish asymptotic performance or behavior on harder completion instances \cite{gent2017complexity}.
@@ -324,7 +360,7 @@ The author declares that he has no known competing financial interests or person
 The author used generative AI tools to assist with code revisions, figure design, and LaTeX formatting. The author reviewed the resulting code, figures, and text and remains responsible for the manuscript.
 
 \section*{Data availability}
-The source code, benchmark data, and reproduction scripts are available at \url{https://github.com/Ohhalo02/nqueens-sat-optimization-01}. The repository contains raw CSVs, summaries, metadata, and JSONL placements under \path{nqueens_sat/results/benchmarks/}. The \texttt{comparison.csv} dataset selects one benchmark source per common-size cell, with corresponding file manifests and verification scripts to regenerate all manuscript tables and figures.
+The source code, benchmark data, and reproduction scripts are available at \url{https://github.com/Ohhalo02/nqueens-sat-optimization-01}. The repository contains raw CSVs, summaries, metadata, and JSONL placements under \path{nqueens_sat/results/benchmarks/}. The \texttt{comparison.csv} dataset selects one benchmark source per common-size cell, with corresponding file manifests and verification scripts to regenerate all manuscript tables and figures. Current artifact checks normalize text line endings to LF before hashing; original session metadata and their collection-time fingerprints remain unchanged.
 
 \bibliographystyle{cas-model2-names}
 \bibliography{references}
